@@ -1,0 +1,27 @@
+{
+  "name": "email-validator-privacy-first",
+  "version": "4.0.0",
+  "description": "Privacy-first bulk email validation tool with SMTP verification, API authentication, and professional deployment support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "email",
+    "validation",
+    "bulk",
+    "privacy",
+    "bounce",
+    "deliverability"
+  ],
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.1.5",
+    "whoiser": "^1.17.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

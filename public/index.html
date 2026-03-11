@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Privacy-first email validation tool - all data stays in your browser"
+    />
+    <title>Email Validator - Privacy First</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Loading Overlay -->
+    <div id="loader" class="loader">
+      <div class="loader-content">
+        <div class="spinner"></div>
+        <p id="loaderText">Processing...</p>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="container header-container">
+        <div class="header-brand">
+          <svg
+            class="header-icon"
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+            ></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+            <path d="M12 13l-8 5m16-5l-8 5" opacity="0.6"></path>
+          </svg>
+          <div class="header-title">
+            <h1>Email Validator</h1>
+            <span class="header-tagline">Privacy-First Validation</span>
+          </div>
+        </div>
+        <nav class="header-nav">
+          <button class="nav-link" onclick="openModal('howToUseModal')">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            How to Use
+          </button>
+          <button class="nav-link" onclick="openModal('privacyModal')">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Privacy
+          </button>
+          <div class="privacy-indicator">
+            <span class="privacy-dot"></span>
+            <span class="privacy-text">100% Private</span>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Stats Dashboard -->
+      <section class="card stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total Checked</div>
+        </div>
+        <div class="stat-card stat-success">
+          <div class="stat-value" id="statSend">0</div>
+          <div class="stat-label">Ready to Send</div>
+        </div>
+        <div class="stat-card stat-warning">
+          <div class="stat-value" id="statReview">0</div>
+          <div class="stat-label">Need Review</div>
+        </div>
+        <div class="stat-card stat-danger">
+          <div class="stat-value" id="statSuppress">0</div>
+          <div class="stat-label">Should Suppress</div>
+        </div>
+        <div class="stat-card stat-info">
+          <div class="stat-value" id="statSuppressed">0</div>
+          <div class="stat-label">Suppressed</div>
+        </div>
+      </section>
+
+      <!-- Tabs -->
+      <section class="tabs">
+        <button class="tab-btn active" onclick="showTab('single')">
+          Single Email
+        </button>
+        <button class="tab-btn" onclick="showTab('bulk')">
+          Bulk Validation
+        </button>
+        <button class="tab-btn" onclick="showTab('csv')">CSV Upload</button>
+        <button class="tab-btn" onclick="showTab('bounce')">
+          Bounce Parser
+        </button>
+        <button class="tab-btn" onclick="showTab('settings')">Settings</button>
+      </section>
+
+      <!-- Single Email Tab -->
+      <div id="tab-single" class="tab-content active">
+        <section class="card">
+          <h2>Validate Single Email</h2>
+
+          <!-- Progressive Validation Level Selector -->
+          <div class="validation-level-selector">
+            <label for="validationLevel">Validation Level:</label>
+            <select id="validationLevel" class="select">
+              <option value="quick">⚡ Quick (Syntax + Basic)</option>
+              <option value="standard" selected>
+                🔍 Standard (+ DNS + Auth)
+              </option>
+              <option value="deep">🔬 Deep (+ Gravatar + All Checks)</option>
+            </select>
+            <span class="validation-hint" id="validationLevelHint"
+              >🔍 Standard validation (syntax + DNS + email
+              authentication)</span
+            >
+          </div>
+
+          <div class="input-with-validation">
+            <input
+              type="email"
+              id="singleEmail"
+              class="input-large"
+              placeholder="Enter email address"
+              onkeypress="if (event.key === 'Enter') UI.validateSingle();"
+            />
+            <div id="syntaxFeedback" class="syntax-feedback"></div>
+          </div>
+          <div
+            id="typoSuggestion"
+            class="typo-suggestion"
+            style="display: none"
+          >
+            <span class="typo-icon">💡</span>
+            <span id="typoText"></span>
+            <button id="acceptTypoBtn" class="btn-typo-accept">Use this</button>
+            <button id="dismissTypoBtn" class="btn-typo-dismiss">
+              Dismiss
+            </button>
+          </div>
+          <button id="validateSingleBtn" class="btn btn-primary">
+            Validate Email
+          </button>
+        </section>
+      </div>
+
+      <!-- Bulk Validation Tab -->
+      <div id="tab-bulk" class="tab-content">
+        <section class="card">
+          <h2>Bulk Email Validation</h2>
+          <div class="validation-controls">
+            <p class="hint">Paste email addresses, one per line</p>
+            <div
+              id="validationProgress"
+              class="progress-bar"
+              style="display: none"
+            >
+              <div class="progress-fill" id="progressFill"></div>
+              <span class="progress-text" id="progressText">0 / 0</span>
+            </div>
+            <div
+              class="validation-buttons"
+              id="validationButtons"
+              style="display: none"
+            >
+              <button id="pauseValidationBtn" class="btn btn-warning">
+                ⏸ Pause
+              </button>
+              <button
+                id="resumeValidationBtn"
+                class="btn btn-success"
+                style="display: none"
+              >
+                ▶️ Resume
+              </button>
+              <button id="cancelValidationBtn" class="btn btn-danger">
+                ✖ Cancel
+              </button>
+            </div>
+          </div>
+          <textarea
+            id="bulkEmails"
+            class="textarea-large"
+            placeholder="email1@example.com&#10;email2@example.com&#10;email3@example.com"
+            rows="10"
+          ></textarea>
+
+          <h3>Optional: Bounce Messages</h3>
+          <p class="hint">Format: email|bounce message (one per line)</p>
+          <textarea
+            id="bulkBounces"
+            class="textarea-large"
+            placeholder="user@example.com|5.1.1 The email account that you tried to reach does not exist&#10;another@test.com|Mailbox full"
+            rows="6"
+          ></textarea>
+
+          <button id="validateBulkBtn" class="btn btn-primary">
+            Validate All Emails
+          </button>
+        </section>
+      </div>
+
+      <!-- CSV Upload Tab -->
+      <div id="tab-csv" class="tab-content">
+        <section class="card">
+          <h2>Upload CSV File</h2>
+          <p class="hint">
+            CSV must have an <strong>email</strong> column. Optionally include a
+            <strong>bounce</strong> column.
+          </p>
+
+          <!-- Import Format Selector -->
+          <div class="import-format-selector">
+            <label>CSV Format:</label>
+            <div class="format-buttons">
+              <button class="format-btn active" data-format="generic">
+                📄 Generic CSV
+              </button>
+              <button class="format-btn" data-format="mailchimp">
+                🐵 Mailchimp
+              </button>
+              <button class="format-btn" data-format="hubspot">
+                🟠 HubSpot
+              </button>
+              <button class="format-btn" data-format="google">
+                📧 Google Contacts
+              </button>
+            </div>
+            <p class="format-hint" id="formatHint">
+              Standard CSV with 'email' column
+            </p>
+          </div>
+
+          <div
+            class="upload-area"
+            onclick="document.getElementById('csvFile').click()"
+          >
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"
+              />
+            </svg>
+            <p>Click to select CSV file</p>
+            <p class="small">or drag and drop here</p>
+          </div>
+
+          <input type="file" id="csvFile" accept=".csv" style="display: none" />
+
+          <div class="example-box">
+            <h4>Example CSV format:</h4>
+            <pre>
+email,name,bounce
+john@example.com,John Doe,
+bad@test.com,Bad User,5.1.1 User does not exist
+jane@company.com,Jane Smith,</pre
+            >
+          </div>
+        </section>
+      </div>
+
+      <!-- Bounce Parser Tab -->
+      <div id="tab-bounce" class="tab-content">
+        <section class="card">
+          <h2>Bounce Message Parser</h2>
+          <p class="hint">
+            Paste a bounce message to analyze and categorize it
+          </p>
+
+          <textarea
+            id="bounceText"
+            class="textarea-large"
+            placeholder="550 5.1.1 <user@example.com>: Recipient address rejected: User unknown in local recipient table"
+            rows="6"
+          ></textarea>
+
+          <button id="parseBounceBtn" class="btn btn-primary">
+            Parse Bounce Message
+          </button>
+
+          <div class="result-box">
+            <h3>Result:</h3>
+            <pre id="bounceResult" class="code-block"></pre>
+          </div>
+
+          <div class="info-box">
+            <h4>Common Bounce Codes:</h4>
+            <ul>
+              <li>
+                <strong>5.1.1</strong> - Mailbox does not exist (hard bounce)
+              </li>
+              <li>
+                <strong>5.4.1</strong> - Recipient address rejected
+                (policy/config issue)
+              </li>
+              <li><strong>4.4.4</strong> - Temporary failure (retry later)</li>
+              <li><strong>5.x.x</strong> - Permanent failure (do not retry)</li>
+              <li><strong>4.x.x</strong> - Temporary failure (can retry)</li>
+              <li><strong>2.x.x</strong> - Success (message accepted)</li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="tab-settings" class="tab-content">
+        <section class="card">
+          <h2>Settings & Data Management</h2>
+
+          <div class="settings-section">
+            <h3>🔐 API Key Configuration</h3>
+            <p>
+              This app requires an API key for server deployment. Enter your API
+              key below.
+            </p>
+            <div style="display: flex; gap: 12px; align-items: flex-end">
+              <div style="flex: 1">
+                <label
+                  for="apiKeyInput"
+                  style="display: block; margin-bottom: 8px; font-weight: 600"
+                  >API Key:</label
+                >
+                <input
+                  type="password"
+                  id="apiKeyInput"
+                  placeholder="Enter your API key here"
+                  style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 8px;
+                    font-family: monospace;
+                  "
+                />
+              </div>
+              <button
+                id="saveApiKeyBtn"
+                class="btn btn-primary"
+                style="white-space: nowrap"
+              >
+                Save API Key
+              </button>
+            </div>
+            <p
+              id="apiKeyStatus"
+              style="margin-top: 8px; font-size: 0.875rem; color: #6b7280"
+            ></p>
+            <div
+              class="info-box"
+              style="
+                margin-top: 16px;
+                background: #fef3c7;
+                border-left: 4px solid #f59e0b;
+              "
+            >
+              <p style="margin: 0; font-size: 0.875rem">
+                <strong>🚀 Deploy to Render.com:</strong> Get your API key from
+                your Render dashboard after deployment. See
+                <code>README_DEPLOYMENT.md</code> for instructions.
+              </p>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Suppression List</h3>
+            <p>Manage emails that should never be sent to</p>
+            <button id="viewSuppressionBtn" class="btn btn-secondary">
+              View Suppression List
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <h3>Data Storage</h3>
+            <p>
+              All your data is stored locally in your browser. No data is sent
+              to any server.
+            </p>
+            <button id="clearDataBtn" class="btn btn-danger">
+              Clear All Data
+            </button>
+          </div>
+
+          <div class="settings-section">
+            <h3>Privacy Information</h3>
+            <div class="info-box">
+              <h4>What data is stored locally:</h4>
+              <ul>
+                <li>Validation results</li>
+                <li>Suppression list</li>
+                <li>Validation history</li>
+                <li>User preferences</li>
+              </ul>
+
+              <h4>What is sent to the server:</h4>
+              <ul>
+                <li>
+                  <strong>Only domain names</strong> (not email addresses) for
+                  DNS/MX lookups
+                </li>
+                <li>
+                  No email addresses are ever logged or stored on the server
+                </li>
+                <li>
+                  The server performs only DNS queries and returns DNS records
+                </li>
+              </ul>
+
+              <h4>How to be completely offline:</h4>
+              <ul>
+                <li>Download and run this tool on your own server</li>
+                <li>Set up your own DNS resolver</li>
+                <li>All validation logic runs in your browser</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>💼 Professional Support</h3>
+            <p>
+              Need help with deployment, custom features, or enterprise
+              integration?
+            </p>
+            <div
+              class="info-box"
+              style="background: #eff6ff; border-left: 4px solid #3b82f6"
+            >
+              <h4>Available Services:</h4>
+              <ul>
+                <li>
+                  <strong>Custom Deployment:</strong> We can deploy and
+                  configure this tool on your infrastructure
+                </li>
+                <li>
+                  <strong>API Integration:</strong> Connect to your CRM, email
+                  marketing platform, or custom systems
+                </li>
+                <li>
+                  <strong>Bulk Processing:</strong> Large-scale email validation
+                  (10K+ emails)
+                </li>
+                <li>
+                  <strong>Custom Features:</strong> Tailored validation rules
+                  for your specific needs
+                </li>
+                <li>
+                  <strong>Training & Support:</strong> Team training and ongoing
+                  technical support
+                </li>
+              </ul>
+              <p style="margin-top: 16px">
+                <strong>📧 Contact:</strong>
+                <a
+                  href="mailto:support@yourdomain.com"
+                  style="color: #3b82f6; text-decoration: underline"
+                >
+                  support@yourdomain.com
+                </a>
+              </p>
+              <p style="margin-top: 8px; font-size: 0.875rem; color: #6b7280">
+                Response time: Within 24 hours for all inquiries
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Results Section -->
+      <section class="card">
+        <div class="results-header">
+          <h2>Validation Results</h2>
+          <div class="results-controls">
+            <input
+              type="text"
+              id="searchInput"
+              class="input-search"
+              placeholder="Search results..."
+            />
+            <select id="filterSelect" class="select">
+              <option value="all">All Results</option>
+              <option value="send">Send</option>
+              <option value="review">Review</option>
+              <option value="suppress">Suppress</option>
+              <option value="disposable">Disposable</option>
+              <option value="hard-bounce">Hard Bounce</option>
+            </select>
+            <button id="exportBtn" class="btn btn-secondary">Export All</button>
+            <select id="exportCategorySelect" class="select">
+              <option value="send">Send Ready</option>
+              <option value="review">Need Review</option>
+              <option value="suppress">Should Suppress</option>
+            </select>
+            <button id="exportCategoryBtn" class="btn btn-success">
+              Export Selected Category
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="resultsTable" class="results-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Action</th>
+                <th>Domain</th>
+                <th>Provider</th>
+                <th>MX</th>
+                <th>Auth</th>
+                <th>Flags</th>
+                <th>Bounce</th>
+                <th>Suppress</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="11" style="text-align: center; padding: 40px">
+                  No results yet. Start validating emails above.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div id="paginationContainer" class="pagination-wrapper"></div>
+      </section>
+    </div>
+
+    <!-- Suppression List Modal -->
+    <div id="suppressionModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Suppression List</h2>
+          <button class="modal-close" onclick="closeModal('suppressionModal')">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <table id="suppressionTable" class="results-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Reason</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to Use Modal -->
+    <div id="howToUseModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>How to Use</h2>
+          <button class="modal-close" onclick="closeModal('howToUseModal')">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-section">
+            <h3>🚀 Quick Start</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>Single Email:</strong> Enter an email in the Single tab
+                and click "Validate Email"
+              </li>
+              <li>
+                <strong>Bulk Validation:</strong> Paste multiple emails (one per
+                line) in the Bulk tab
+              </li>
+              <li>
+                <strong>CSV Upload:</strong> Drag & drop a CSV file with an
+                "email" column in the CSV tab
+              </li>
+              <li>
+                <strong>Bounce Detection:</strong> Paste bounce messages in the
+                Bounce tab to extract and categorize bounced emails
+              </li>
+            </ul>
+          </div>
+
+          <div class="guide-section">
+            <h3>📊 Understanding Results</h3>
+            <p>
+              Each validated email receives a <strong>score (0-100)</strong> and
+              an <strong>action recommendation</strong>:
+            </p>
+            <div class="guide-grid">
+              <div class="guide-card" style="border-left: 4px solid #10b981">
+                <h4>✅ Send Ready (85-100)</h4>
+                <p>
+                  Valid email with excellent authentication (MX +
+                  SPF/DKIM/DMARC). Safe to send immediately.
+                </p>
+              </div>
+              <div class="guide-card" style="border-left: 4px solid #f59e0b">
+                <h4>⚠️ Need Review (60-84)</h4>
+                <p>
+                  Valid but missing some authentication or has minor concerns.
+                  Verify before sending.
+                </p>
+              </div>
+              <div class="guide-card" style="border-left: 4px solid #ef4444">
+                <h4>🚫 Should Suppress (0-59)</h4>
+                <p>
+                  Invalid, disposable, or high-risk. Do not send to avoid
+                  bounce/spam issues.
+                </p>
+              </div>
+            </div>
+            <p class="privacy-highlight" style="margin-top: 1rem">
+              <strong>Scoring Breakdown (Max 100 points):</strong><br />
+              • Valid syntax: +20 | Domain exists: +10 | MX records: +30<br />
+              • SPF: +10 | DKIM: +10 | DMARC: +10 | Known provider: +10
+            </p>
+          </div>
+
+          <div class="guide-section">
+            <h3>⚠️ Risk Flags Explained</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>Disposable:</strong> Temporary email service (10-minute
+                mail, guerrilla mail). Usually low engagement.
+              </li>
+              <li>
+                <strong>Role-based:</strong> Generic addresses (info@, support@,
+                admin@). Often shared inboxes with low deliverability.
+              </li>
+              <li>
+                <strong>Typo Detected:</strong> Common misspellings (gmial.com →
+                gmail.com). Suggest correction to user.
+              </li>
+              <li>
+                <strong>Gibberish:</strong> Email appears to be random
+                characters with no vowel pattern (e.g., xkjdflwer@domain.com).
+                Likely fake or test email.
+              </li>
+              <li>
+                <strong>Random Pattern:</strong> Keyboard patterns (qwerty@),
+                repeating characters (aaaa@), or suspicious sequences detected.
+              </li>
+              <li>
+                <strong>Many Numbers:</strong> Unusually high percentage of
+                digits (60%+). Often indicates auto-generated or bot emails.
+              </li>
+              <li>
+                <strong>Confidence Score:</strong> Separate from quality score -
+                indicates how certain we are about the result (High 90%+, Medium
+                70-89%, Low 50-69%).
+              </li>
+              <li>
+                <strong>⚠️ Icon:</strong> Hover over the warning icon next to
+                emails to see specific concerns (provider misconfig, pattern
+                issues, etc.).
+              </li>
+              <li>
+                <strong>No MX Records:</strong> Domain cannot receive emails.
+                Guaranteed bounce.
+              </li>
+              <li>
+                <strong>No SPF/DKIM/DMARC:</strong> Missing email
+                authentication. Higher spam probability.
+              </li>
+            </ul>
+          </div>
+
+          <div class="guide-section">
+            <h3>💾 Export Options</h3>
+            <p>Download results by category for targeted campaigns:</p>
+            <ul class="guide-list">
+              <li>
+                <strong>Send Ready:</strong> Export only high-quality emails
+                ready for immediate sending
+              </li>
+              <li>
+                <strong>Need Review:</strong> Export emails requiring manual
+                verification
+              </li>
+              <li>
+                <strong>Should Suppress:</strong> Export invalid/risky emails to
+                add to suppression list
+              </li>
+              <li>
+                <strong>All Results:</strong> Download full validation report
+                with all data
+              </li>
+            </ul>
+            <p class="privacy-highlight">
+              💡 Tip: Use filters (dropdown) to view specific categories before
+              exporting.
+            </p>
+          </div>
+
+          <div class="guide-section">
+            <h3>🔄 Bounce Parser</h3>
+            <p>Extract and categorize bounced emails from bounce messages:</p>
+            <ol class="guide-list">
+              <li>Copy the full bounce message from your email client</li>
+              <li>
+                Paste into the Bounce tab and click "Parse Bounce Message"
+              </li>
+              <li>
+                System extracts email addresses and identifies bounce types (18
+                categories)
+              </li>
+              <li>
+                Common categories: Invalid Mailbox, Domain Not Found, Mailbox
+                Full, Spam Block, etc.
+              </li>
+            </ol>
+            <p class="privacy-highlight">
+              🔒 All parsing happens in your browser. Bounce messages never
+              leave your device.
+            </p>
+          </div>
+
+          <div class="guide-section">
+            <h3>⚙️ Advanced Features</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>Suppression List:</strong> Add emails to local
+                suppression list (automatically excludes from future
+                validations)
+              </li>
+              <li>
+                <strong>Custom Disposable Domains:</strong> Add your own known
+                disposable domains in Settings
+              </li>
+              <li>
+                <strong>Search & Filter:</strong> Use search box and filter
+                dropdown to find specific emails in results
+              </li>
+              <li>
+                <strong>Pagination:</strong> Results auto-paginate at 30 items
+                per page for better performance
+              </li>
+              <li>
+                <strong>Typo Suggestions:</strong> System auto-suggests
+                corrections for common domain typos
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy & Technology Modal -->
+    <div id="privacyModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Privacy & Technology</h2>
+          <button class="modal-close" onclick="closeModal('privacyModal')">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-section">
+            <h3>🔒 Privacy Guarantee</h3>
+            <p class="privacy-highlight">
+              <strong>100% Client-Side Processing:</strong> All email validation
+              happens in your browser. Email addresses NEVER leave your device
+              or get sent to any server.
+            </p>
+          </div>
+
+          <div class="guide-section">
+            <h3>💾 Data Storage</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>localStorage Only:</strong> All data stored in browser's
+                localStorage (~5KB per 100 validations)
+              </li>
+              <li>
+                <strong>No Database:</strong> Zero server-side data persistence
+              </li>
+              <li>
+                <strong>Clear Anytime:</strong> Delete all data via Settings →
+                Clear Data
+              </li>
+              <li>
+                <strong>No Cookies:</strong> No tracking cookies or analytics
+                scripts
+              </li>
+            </ul>
+          </div>
+
+          <div class="guide-section">
+            <h3>🛠️ Technology Stack</h3>
+            <div class="tech-stack">
+              <div class="tech-category">
+                <h4>Backend (DNS Lookups Only)</h4>
+                <ul>
+                  <li>
+                    <a href="https://nodejs.org/" target="_blank">Node.js</a> -
+                    Runtime environment
+                  </li>
+                  <li>
+                    <a href="https://expressjs.com/" target="_blank"
+                      >Express.js v4.21.2</a
+                    >
+                    - Web framework
+                  </li>
+                  <li>
+                    <a href="https://www.npmjs.com/package/cors" target="_blank"
+                      >CORS v2.8.5</a
+                    >
+                    - Cross-origin security
+                  </li>
+                  <li>
+                    <a
+                      href="https://www.npmjs.com/package/express-rate-limit"
+                      target="_blank"
+                      >express-rate-limit v7.1.5</a
+                    >
+                    - Rate limiting (100 req/min)
+                  </li>
+                </ul>
+              </div>
+              <div class="tech-category">
+                <h4>Frontend (Zero Dependencies)</h4>
+                <ul>
+                  <li>Vanilla JavaScript - No frameworks or libraries</li>
+                  <li>HTML5 & CSS3 - Modern web standards</li>
+                  <li>
+                    Browser localStorage API - Client-side data persistence
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <h3>📧 Email Standards</h3>
+            <p>Validation follows official internet standards (RFCs):</p>
+            <ul class="guide-list">
+              <li>
+                <a href="https://tools.ietf.org/html/rfc5321" target="_blank"
+                  >RFC 5321</a
+                >
+                - SMTP Protocol
+              </li>
+              <li>
+                <a href="https://tools.ietf.org/html/rfc5322" target="_blank"
+                  >RFC 5322</a
+                >
+                - Email Address Format
+              </li>
+              <li>
+                <a href="https://tools.ietf.org/html/rfc7208" target="_blank"
+                  >RFC 7208</a
+                >
+                - SPF (Sender Policy Framework)
+              </li>
+              <li>
+                <a href="https://tools.ietf.org/html/rfc6376" target="_blank"
+                  >RFC 6376</a
+                >
+                - DKIM (DomainKeys Identified Mail)
+              </li>
+              <li>
+                <a href="https://tools.ietf.org/html/rfc7489" target="_blank"
+                  >RFC 7489</a
+                >
+                - DMARC (Domain-based Message Authentication)
+              </li>
+              <li>
+                <a
+                  href="https://www.iana.org/assignments/smtp-enhanced-status-codes/"
+                  target="_blank"
+                  >IANA SMTP Status Codes</a
+                >
+                - Bounce message classification
+              </li>
+            </ul>
+          </div>
+
+          <div class="guide-section">
+            <h3>🔐 Security Features</h3>
+            <ul class="guide-list">
+              <li>
+                <strong>No Email Transmission:</strong> Server API rejects any
+                request containing email addresses
+              </li>
+              <li>
+                <strong>Domain-Only Lookups:</strong> Only domain names sent to
+                server for DNS queries (MX, SPF, DKIM, DMARC)
+              </li>
+              <li>
+                <strong>Rate Limiting:</strong> API restricted to 100 requests
+                per minute per IP
+              </li>
+              <li>
+                <strong>CORS Protection:</strong> Server only accepts requests
+                from configured origins
+              </li>
+              <li>
+                <strong>XSS Prevention:</strong> All user input sanitized before
+                rendering
+              </li>
+            </ul>
+          </div>
+
+          <div class="guide-section">
+            <h3>📡 Data Transmission</h3>
+            <div class="data-flow">
+              <div class="data-flow-step">
+                <strong>1. Client:</strong> Full email validation (syntax,
+                disposable check, role-based detection)
+              </div>
+              <div class="data-flow-step">
+                <strong>2. Extract Domain:</strong> example@<span
+                  style="color: #10b981"
+                  >domain.com</span
+                >
+                → domain.com only
+              </div>
+              <div class="data-flow-step">
+                <strong>3. Server Request:</strong> Send domain name only to
+                /api/dns-lookup
+              </div>
+              <div class="data-flow-step">
+                <strong>4. DNS Lookup:</strong> Server queries MX, SPF, DKIM,
+                DMARC records
+              </div>
+              <div class="data-flow-step">
+                <strong>5. Response:</strong> DNS data returned to browser
+              </div>
+              <div class="data-flow-step">
+                <strong>6. Final Score:</strong> Client combines all checks and
+                calculates score
+              </div>
+            </div>
+            <p class="privacy-highlight">
+              ✅ Email address never transmitted over network<br />
+              ✅ No server logs or data retention<br />
+              ✅ All processing happens in your browser
+            </p>
+          </div>
+
+          <div class="guide-section">
+            <h3>📖 Open Source</h3>
+            <p>
+              This tool is open source and self-hostable. You can review the
+              code, deploy on your own server, or run it locally. No external
+              dependencies or third-party services required.
+            </p>
+            <p>
+              <strong>Hosting Options:</strong> Netlify, Vercel, AWS,
+              self-hosted VPS, or localhost
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <p>
+          <strong>Privacy-First Email Validator</strong> • All data stored
+          locally in your browser • No tracking • No external API calls except
+          DNS lookups •
+          <a href="https://github.com" target="_blank">Open Source</a>
+        </p>
+      </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+      // Modal functions
+      function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+          modal.style.display = "block";
+          document.body.style.overflow = "hidden"; // Prevent background scrolling
+        }
+      }
+
+      function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+          modal.style.display = "none";
+          document.body.style.overflow = "auto"; // Restore scrolling
+        }
+      }
+
+      // Close modal when clicking outside the modal content
+      window.addEventListener("click", (event) => {
+        if (event.target.classList.contains("modal")) {
+          event.target.style.display = "none";
+          document.body.style.overflow = "auto";
+        }
+      });
+
+      // Close modal with Escape key
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          document.querySelectorAll(".modal").forEach((modal) => {
+            modal.style.display = "none";
+          });
+          document.body.style.overflow = "auto";
+        }
+      });
+
+      // Tab switching
+      function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll(".tab-content").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).classList.add("active");
+        event.target.classList.add("active");
+      }
+
+      // CSV drag and drop
+      const uploadArea = document.querySelector(".upload-area");
+      if (uploadArea) {
+        ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+          uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+          uploadArea.addEventListener(
+            eventName,
+            () => {
+              uploadArea.classList.add("drag-over");
+            },
+            false,
+          );
+        });
+
+        ["dragleave", "drop"].forEach((eventName) => {
+          uploadArea.addEventListener(
+            eventName,
+            () => {
+              uploadArea.classList.remove("drag-over");
+            },
+            false,
+          );
+        });
+
+        uploadArea.addEventListener(
+          "drop",
+          (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+              document.getElementById("csvFile").files = files;
+              const event = new Event("change");
+              document.getElementById("csvFile").dispatchEvent(event);
+            }
+          },
+          false,
+        );
+      }
+    </script>
+
+    <!-- Dynamic Tooltip Modal (Single Instance) -->
+    <div id="dynamicTooltip" class="dynamic-tooltip"></div>
+
+    <script>
+      // High-performance dynamic tooltip system - ONE modal for ALL tooltips
+      (function () {
+        const tooltip = document.getElementById("dynamicTooltip");
+        let currentTarget = null;
+        let hideTimeout = null;
+
+        function showTooltip(element, text) {
+          if (hideTimeout) {
+            clearTimeout(hideTimeout);
+            hideTimeout = null;
+          }
+
+          tooltip.textContent = text;
+          tooltip.style.display = "block";
+          currentTarget = element;
+
+          positionTooltip(element);
+        }
+
+        function positionTooltip(element) {
+          const rect = element.getBoundingClientRect();
+          const tooltipRect = tooltip.getBoundingClientRect();
+          const scrollTop =
+            window.pageYOffset || document.documentElement.scrollTop;
+          const scrollLeft =
+            window.pageXOffset || document.documentElement.scrollLeft;
+
+          // Try to position below the element
+          let top = rect.bottom + scrollTop + 8;
+          let left =
+            rect.left + scrollLeft + rect.width / 2 - tooltipRect.width / 2;
+
+          // Check if tooltip goes off right edge
+          if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
+          }
+
+          // Check if tooltip goes off left edge
+          if (left < 10) {
+            left = 10;
+          }
+
+          // Check if tooltip goes off bottom edge, position above instead
+          if (top + tooltipRect.height > window.innerHeight + scrollTop - 10) {
+            top = rect.top + scrollTop - tooltipRect.height - 8;
+          }
+
+          tooltip.style.top = top + "px";
+          tooltip.style.left = left + "px";
+        }
+
+        function hideTooltip() {
+          hideTimeout = setTimeout(() => {
+            tooltip.style.display = "none";
+            currentTarget = null;
+          }, 100);
+        }
+
+        // Attach event listeners to all elements with data-tooltip
+        function attachTooltipListeners() {
+          document.querySelectorAll("[data-tooltip]").forEach((element) => {
+            element.addEventListener("mouseenter", function () {
+              const text = this.getAttribute("data-tooltip");
+              if (text) {
+                showTooltip(this, text);
+              }
+            });
+
+            element.addEventListener("mouseleave", function () {
+              hideTooltip();
+            });
+          });
+        }
+
+        // Initial attachment
+        attachTooltipListeners();
+
+        // Reattach after dynamic content updates (for pagination, etc.)
+        const observer = new MutationObserver(() => {
+          attachTooltipListeners();
+        });
+
+        // Observe results table for new tooltips (tbody where rows are added)
+        const resultsTable = document.getElementById("resultsTable");
+        if (resultsTable) {
+          observer.observe(resultsTable, {
+            childList: true,
+            subtree: true,
+          });
+        }
+
+        // Reposition on scroll/resize
+        let repositionTimeout;
+        window.addEventListener(
+          "scroll",
+          () => {
+            if (currentTarget && tooltip.style.display === "block") {
+              if (repositionTimeout) clearTimeout(repositionTimeout);
+              repositionTimeout = setTimeout(() => {
+                positionTooltip(currentTarget);
+              }, 10);
+            }
+          },
+          true,
+        );
+
+        window.addEventListener("resize", () => {
+          if (currentTarget && tooltip.style.display === "block") {
+            positionTooltip(currentTarget);
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
