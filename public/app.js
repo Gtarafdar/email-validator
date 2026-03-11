@@ -1490,8 +1490,9 @@ const Validator = {
       }
     }
 
-    // SMTP Mailbox Verification - DEEP level only
+    // SMTP Mailbox Verification - DEEP level only (IMPROVED)
     // Real inbox checking - use sparingly (rate limited to 20/min)
+    // Now tries multiple MX servers and detects catch-all configurations
     if (
       validationLevel === "deep" &&
       !result.disposable &&
@@ -1504,24 +1505,50 @@ const Validator = {
         result.smtpVerified = true;
         result.mailboxExists = smtpResult.exists;
         result.smtpCode = smtpResult.smtpCode;
+        result.smtpConfidence = smtpResult.confidence; // high/low
+        result.smtpReason = smtpResult.reason; // catch_all, mailbox_not_found, policy_block, etc.
+        result.smtpCatchAll = smtpResult.catchAll || false;
+        result.smtpMxTried = smtpResult.mxTried || [];
 
-        if (smtpResult.exists === true) {
+        if (smtpResult.exists === true && !smtpResult.catchAll) {
+          // Definitive: Mailbox exists and it's not catch-all
           result.allWarnings.push(
-            "✅ Mailbox verified via SMTP (inbox exists)",
+            "✅ Mailbox verified via SMTP - inbox exists (high confidence)",
           );
           result.score += 15; // Bonus for confirmed mailbox
         } else if (smtpResult.exists === false) {
+          // Definitive: Mailbox does not exist
+          const reasonText = smtpResult.reason === "mailbox_not_found" 
+            ? "mailbox not found" 
+            : "rejected by server";
           result.allWarnings.push(
-            "❌ Mailbox does not exist (SMTP verification failed)",
+            `❌ Mailbox does not exist - SMTP verification failed (${reasonText})`,
           );
           result.score -= 30; // Penalty for non-existent mailbox
-        } else if (smtpResult.exists === "unknown") {
+        } else if (smtpResult.catchAll || smtpResult.reason === "catch_all") {
+          // Server accepts all addresses - cannot verify
           result.allWarnings.push(
-            "⚠️ SMTP verification inconclusive (server blocked or catch-all) - Cannot confirm mailbox exists. Recommend manual verification or test send.",
+            "⚠️ Catch-all server detected - accepts all emails. Cannot verify if mailbox exists. Recommend test send or manual verification.",
           );
-          // CRITICAL: Reduce score when we can't verify mailbox existence
-          // This prevents false confidence - score drops from 85 to 70 (likely_deliverable → review)
-          result.score -= 15;
+          result.score -= 15; // Reduce confidence
+        } else if (smtpResult.reason === "policy_block") {
+          // Blocked by server policy (spam filters, IP blacklist)
+          result.allWarnings.push(
+            "⚠️ SMTP verification blocked by server policy - common for corporate email. Cannot confirm mailbox exists. Try multiple attempts: " + (smtpResult.mxTried?.length || 1) + " MX server(s) tried.",
+          );
+          result.score -= 15; // Reduce confidence
+        } else if (smtpResult.reason === "temporary_error") {
+          // Temporary error (greylisting, rate limit)
+          result.allWarnings.push(
+            "⚠️ Temporary SMTP error - server is busy or rate limiting. Try again later.",
+          );
+          result.score -= 10; // Smaller penalty for temporary issues
+        } else if (smtpResult.exists === "unknown") {
+          // Other inconclusive result
+          result.allWarnings.push(
+            "⚠️ SMTP verification inconclusive - cannot confirm mailbox exists. Server may have disabled verification. " + (smtpResult.mxTried?.length || 1) + " MX server(s) tried. Recommend manual verification.",
+          );
+          result.score -= 15; // Reduce confidence
         }
       } catch (e) {
         result.smtpVerified = false;
@@ -2923,17 +2950,38 @@ const UI = {
       html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Mail-only or inactive</small>`;
     }
 
-    // SMTP Mailbox Verification status (Deep validation only)
+    // SMTP Mailbox Verification status (Deep validation - IMPROVED)
     if (result.smtpVerified) {
-      if (result.mailboxExists === true) {
+      if (result.mailboxExists === true && !result.smtpCatchAll) {
+        // Confirmed: Mailbox exists (not catch-all)
+        const confidenceText = result.smtpConfidence === "high" ? "High confidence" : "Verified";
         html += `<br><small style="color: #10b981; font-weight: 600;">✅ Mailbox verified</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: Inbox exists</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: ${confidenceText} - Inbox exists</small>`;
       } else if (result.mailboxExists === false) {
+        // Confirmed: Mailbox does NOT exist
+        const reasonText = result.smtpReason === "mailbox_not_found" 
+          ? "No such user" 
+          : "Rejected";
         html += `<br><small style="color: #ef4444; font-weight: 600;">❌ Mailbox not found</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: No inbox</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: ${reasonText}</small>`;
+      } else if (result.smtpCatchAll || result.smtpReason === "catch_all") {
+        // Catch-all server - cannot verify
+        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Server accepts all email addresses (catch-all). Cannot verify if this specific mailbox exists. Common for small businesses and privacy-focused domains.">⚠️ Catch-all server</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Cannot verify mailbox</small>`;
+      } else if (result.smtpReason === "policy_block") {
+        // Blocked by server policy
+        const mxCount = result.smtpMxTried?.length || 1;
+        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Server policy blocked verification (spam filters, IP reputation). Tried ${mxCount} MX server(s). This is common for corporate email and not specific to Render.">⚠️ SMTP blocked</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">${mxCount} MX tried - Policy block</small>`;
+      } else if (result.smtpReason === "temporary_error") {
+        // Temporary error
+        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Temporary SMTP error - server busy or rate limiting. Try again later.">⚠️ Temporary error</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Try again later</small>`;
       } else if (result.mailboxExists === "unknown") {
-        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Many mail servers block SMTP verification to prevent abuse. This is normal and not specific to Render. Consider the email deliverable if MX records exist.">⚠️ SMTP inconclusive</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Server blocked check</small>`;
+        // Other inconclusive
+        const mxCount = result.smtpMxTried?.length || 1;
+        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Mail server verification inconclusive. Tried ${mxCount} MX server(s) with multiple strategies. Server may have disabled verification. This is common for corporate email.">⚠️ SMTP inconclusive</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">${mxCount} MX tried - Unknown</small>`;
       }
     }
 

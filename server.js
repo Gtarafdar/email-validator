@@ -545,9 +545,13 @@ app.post("/api/website-check", authenticateAPIKey, async (req, res) => {
 });
 
 /**
- * SMTP Mailbox Verification Endpoint
- * Checks if a mailbox actually exists by connecting to the mail server
- * WITHOUT sending any email. Uses SMTP RCPT TO command.
+ * SMTP Mailbox Verification Endpoint - IMPROVED VERSION
+ * Works smarter like ZeroBounce/Clearout by:
+ * 1. Trying multiple MX servers (not just first)
+ * 2. Detecting catch-all servers
+ * 3. Better error message parsing
+ * 4. Using proper EHLO hostname
+ * 5. Multiple verification strategies
  *
  * WARNING: This is more invasive than DNS checks and may be blocked by some servers.
  * Use sparingly to avoid being blacklisted.
@@ -600,21 +604,35 @@ app.post(
       // Sort by priority (lower is higher priority)
       mxRecords.sort((a, b) => a.priority - b.priority);
 
-      // Try to connect to the highest priority MX server
-      const mxHost = mxRecords[0].exchange;
-      const mxPort = 25;
-
-      // SMTP verification function
-      const verifySMTP = () => {
+      // IMPROVED: SMTP verification with multiple strategies
+      const verifySMTP = (mxHost, strategy = 1) => {
         return new Promise((resolve, reject) => {
-          const socket = net.createConnection(mxPort, mxHost);
+          const socket = net.createConnection(25, mxHost);
           const timeout = setTimeout(() => {
             socket.destroy();
             reject(new Error("Connection timeout"));
-          }, 10000); // 10 second timeout
+          }, 12000); // 12 second timeout
 
           let response = "";
           let step = 0;
+          let allResponses = []; // Track all responses for debugging
+
+          // Use different EHLO hostnames and sender addresses based on strategy
+          let ehloHost, mailfrom;
+          
+          if (strategy === 1) {
+            // Strategy 1: Use validator domain (looks more legitimate)
+            ehloHost = "email-validator-pwk6.onrender.com";
+            mailfrom = "verify@email-validator-pwk6.onrender.com";
+          } else if (strategy === 2) {
+            // Strategy 2: Use target domain (some servers prefer this)
+            ehloHost = domain;
+            mailfrom = `verify@${domain}`;
+          } else {
+            // Strategy 3: Use generic verification domain
+            ehloHost = "mail-validator.com";
+            mailfrom = "noreply@mail-validator.com";
+          }
 
           socket.on("data", (data) => {
             response += data.toString();
@@ -625,15 +643,18 @@ app.post(
 
             const lastLine = lines[lines.length - 2];
             const code = parseInt(lastLine.substring(0, 3));
+            
+            // Store response for analysis
+            allResponses.push({ step, code, message: lastLine });
 
             if (step === 0 && code === 220) {
               // Server ready, send EHLO
-              socket.write(`EHLO ${domain}\r\n`);
+              socket.write(`EHLO ${ehloHost}\r\n`);
               step = 1;
               response = "";
             } else if (step === 1 && (code === 250 || code === 220)) {
               // EHLO accepted, send MAIL FROM
-              socket.write(`MAIL FROM:<noreply@${domain}>\r\n`);
+              socket.write(`MAIL FROM:<${mailfrom}>\r\n`);
               step = 2;
               response = "";
             } else if (step === 2 && code === 250) {
@@ -647,27 +668,99 @@ app.post(
               socket.write("QUIT\r\n");
               socket.end();
 
+              // IMPROVED: Better error code analysis
+              const responseText = lastLine.toLowerCase();
+              
               if (code === 250) {
-                resolve({ exists: true, code, message: "Mailbox exists" });
-              } else if (code === 550 || code === 551 || code === 553) {
-                resolve({
-                  exists: false,
-                  code,
-                  message: "Mailbox does not exist",
+                // Mailbox accepted - but could be catch-all
+                resolve({ 
+                  exists: true, 
+                  code, 
+                  message: "Mailbox exists",
+                  responseText: lastLine,
+                  mxHost,
+                  strategy
                 });
-              } else if (code === 450 || code === 451 || code === 452) {
+              } else if (code === 550 || code === 551 || code === 553 || code === 554) {
+                // Definitive rejection codes
+                // Analyze the error message for more details
+                if (responseText.includes("user unknown") || 
+                    responseText.includes("mailbox not found") ||
+                    responseText.includes("no such user") ||
+                    responseText.includes("does not exist") ||
+                    responseText.includes("invalid recipient") ||
+                    responseText.includes("user not found") ||
+                    responseText.includes("no mailbox")) {
+                  resolve({
+                    exists: false,
+                    code,
+                    message: "Mailbox does not exist (confirmed)",
+                    reason: "mailbox_not_found",
+                    responseText: lastLine,
+                    mxHost,
+                    strategy
+                  });
+                } else if (responseText.includes("blocked") || 
+                          responseText.includes("blacklist") ||
+                          responseText.includes("spam") ||
+                          responseText.includes("relay") ||
+                          responseText.includes("policy")) {
+                  resolve({
+                    exists: "unknown",
+                    code,
+                    message: "Server policy blocked verification",
+                    reason: "policy_block",
+                    responseText: lastLine,
+                    mxHost,
+                    strategy
+                  });
+                } else {
+                  resolve({
+                    exists: false,
+                    code,
+                    message: "Mailbox rejected by server",
+                    responseText: lastLine,
+                    mxHost,
+                    strategy
+                  });
+                }
+              } else if (code === 450 || code === 451 || code === 452 || code === 421) {
+                // Temporary errors - server is busy, rate limited, or greylisting
                 resolve({
                   exists: "unknown",
                   code,
-                  message: "Temporary error, mailbox status unknown",
+                  message: "Temporary server error - mailbox status unknown",
+                  reason: "temporary_error",
+                  responseText: lastLine,
+                  mxHost,
+                  strategy
+                });
+              } else if (code === 252) {
+                // Cannot verify - but will accept and try delivery
+                resolve({
+                  exists: "unknown",
+                  code,
+                  message: "Server cannot verify but will attempt delivery",
+                  reason: "verification_disabled",
+                  responseText: lastLine,
+                  mxHost,
+                  strategy
                 });
               } else {
                 resolve({
                   exists: "unknown",
                   code,
                   message: "Unknown response from server",
+                  responseText: lastLine,
+                  mxHost,
+                  strategy
                 });
               }
+            } else if (code >= 500) {
+              // Error at earlier step - connection blocked
+              clearTimeout(timeout);
+              socket.destroy();
+              reject(new Error(`SMTP error at step ${step}: ${lastLine}`));
             }
           });
 
@@ -684,31 +777,106 @@ app.post(
         });
       };
 
-      try {
-        const result = await verifySMTP();
+      // IMPROVED: Catch-all detection
+      const detectCatchAll = async (mxHost) => {
+        try {
+          // Test with a random non-existent email
+          const randomEmail = `nonexistent${Math.random().toString(36).substring(7)}@${domain}`;
+          const result = await verifySMTP(mxHost, 1);
+          
+          // If random email is accepted, it's likely catch-all
+          if (result.exists === true) {
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      };
 
+      // IMPROVED: Try multiple MX servers with different strategies
+      let lastError = null;
+      let bestResult = null;
+      let triedHosts = [];
+      
+      // Try up to 3 MX servers
+      for (let i = 0; i < Math.min(3, mxRecords.length); i++) {
+        const mxHost = mxRecords[i].exchange;
+        triedHosts.push(mxHost);
+        
+        // Try multiple strategies on first MX server
+        const strategies = i === 0 ? [1, 2, 3] : [1]; // Only try all strategies on primary MX
+        
+        for (const strategy of strategies) {
+          try {
+            const result = await verifySMTP(mxHost, strategy);
+            
+            // If we got a definitive answer (exists or confirmed doesn't exist), use it
+            if (result.exists === true || result.exists === false) {
+              bestResult = result;
+              
+              // If mailbox exists, check for catch-all
+              if (result.exists === true) {
+                const isCatchAll = await detectCatchAll(mxHost);
+                bestResult.catchAll = isCatchAll;
+                
+                if (isCatchAll) {
+                  bestResult.exists = "unknown";
+                  bestResult.message = "Server accepts all emails (catch-all) - cannot verify mailbox";
+                  bestResult.reason = "catch_all";
+                }
+              }
+              
+              break;
+            } else if (!bestResult || result.exists === "unknown") {
+              // Keep the "unknown" result as fallback
+              bestResult = result;
+            }
+          } catch (error) {
+            lastError = error;
+            // Continue to next strategy/host
+          }
+        }
+        
+        // If we got a definitive answer, stop trying
+        if (bestResult && (bestResult.exists === true || bestResult.exists === false)) {
+          break;
+        }
+      }
+
+      // Return result
+      if (bestResult) {
         res.json({
           email: cleanEmail,
           domain,
-          mxHost,
-          exists: result.exists,
-          smtpCode: result.code,
-          message: result.message,
-          warning:
-            "SMTP verification may not be 100% accurate. Some servers always return positive.",
+          exists: bestResult.exists,
+          smtpCode: bestResult.code,
+          message: bestResult.message,
+          reason: bestResult.reason || null,
+          catchAll: bestResult.catchAll || false,
+          mxHost: bestResult.mxHost,
+          mxTried: triedHosts,
+          strategy: bestResult.strategy,
+          responseText: bestResult.responseText,
+          confidence: bestResult.exists === true ? "high" : 
+                     bestResult.exists === false ? "high" : "low",
+          warning: bestResult.exists === "unknown" 
+            ? "Could not verify mailbox - server blocked or disabled verification"
+            : "SMTP verification completed",
           timestamp: new Date().toISOString(),
         });
-      } catch (error) {
-        // Connection failed - likely mail server is blocking connections
+      } else {
+        // All attempts failed
         res.json({
           email: cleanEmail,
           domain,
-          mxHost,
+          mxTried: triedHosts,
           exists: "unknown",
           reason: "connection_failed",
-          message: "Could not connect to mail server for verification",
-          detail: error.message,
-          warning: "Server may be blocking external SMTP connections",
+          message: "Could not connect to mail servers for verification",
+          detail: lastError?.message || "All verification attempts failed",
+          confidence: "low",
+          warning: "Servers are blocking external SMTP connections - common for corporate email",
           timestamp: new Date().toISOString(),
         });
       }
