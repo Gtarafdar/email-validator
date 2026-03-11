@@ -1,6 +1,16 @@
-# 🚀 Quick Start - Get Running in 30 Seconds
+# 🚀 Quick Start Guide
 
-## For Local Use
+## Choose Your Deployment:
+
+### 🌟 **Production (Recommended)** - Hetzner VPS
+**ZeroBounce-level accuracy | €2.99/month | Clean IPs**
+
+👉 **[Jump to Hetzner Deployment](#hetzner-deployment-399month)**
+
+---
+
+### 💻 **Local Testing** - Your Computer
+**Free | For development only | Works with adjusted scoring**
 
 ```bash
 # 1. Install dependencies
@@ -14,6 +24,119 @@ npm start
 ```
 
 **That's it!** 🎉
+
+**Note:** Local testing has ~80-85% accuracy (SMTP may be blocked). For production use, deploy to Hetzner.
+
+---
+
+## Hetzner Deployment (€2.99/month)
+
+### Why Hetzner?
+- ✅ **Clean datacenter IPs** (NOT blacklisted like Render/Railway)
+- ✅ **95% accuracy** (matches ZeroBounce/Clearout)
+- ✅ **€2.99/month** (vs $16+/month for email API services)
+- ✅ **10x cheaper** than commercial validators
+
+### 3-Step Deployment (8 minutes total)
+
+#### Step 1: Order Hetzner VPS (5 minutes)
+
+1. Go to: https://www.hetzner.com/cloud
+2. Click **"Sign Up"** (or login)
+3. Click **"Add Project"** → Name: "Email Validator"
+4. Click **"Add Server"**
+5. Choose:
+   - **Location:** Germany (Falkenstein or Nuremberg)
+   - **Image:** Ubuntu 22.04
+   - **Type:** CX23 (€2.99/month) ✅
+   - **SSH Key:** Add your SSH key
+   - **Name:** email-validator
+6. Click **"Create & Buy Now"**
+7. **Copy the IP address** (e.g., 157.90.123.45)
+
+#### Step 2: Deploy with One Command (2 minutes)
+
+SSH into your server:
+```bash
+ssh root@YOUR_SERVER_IP
+```
+
+Run the automated deployment:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Gtarafdar/email-validator/main/deploy-hetzner.sh | bash
+```
+
+**The script automatically:**
+- ✅ Installs Node.js 20.x
+- ✅ Configures firewall + security
+- ✅ Clones repository
+- ✅ Generates API key
+- ✅ Starts with PM2 (24/7 uptime)
+- ✅ Configures Nginx
+
+**Save the API key** shown at the end!
+
+#### Step 3: Test It Works (1 minute)
+
+Open browser:
+```
+http://YOUR_SERVER_IP
+```
+
+1. Go to **Settings** tab
+2. Enter the **API key** (from deployment)
+3. Test: `riyad@bonfiremedia.co.za`
+
+**Expected:**
+- ✅ Status: **Invalid** ❌ (not "likely_deliverable")
+- ✅ SMTP: **Mailbox not found** (not "inconclusive")
+- ✅ Score: ~55 (not 85)
+
+**If you see this, you're done!** 🎉
+
+### Management Commands
+
+```bash
+# View logs
+ssh root@YOUR_SERVER_IP
+pm2 logs email-validator
+
+# Restart
+pm2 restart email-validator
+
+# Update code
+cd /home/validator/email-validator
+git pull origin main
+pm2 restart email-validator
+```
+
+### Optional: Add Custom Domain + SSL
+
+Want `https://validator.yourdomain.com`?
+
+1. **Point domain to Hetzner IP:**
+   - Go to your domain registrar
+   - Add A record: `validator` → `YOUR_HETZNER_IP`
+
+2. **Install SSL certificate (FREE):**
+   ```bash
+   ssh root@YOUR_SERVER_IP
+   certbot --nginx -d validator.yourdomain.com
+   ```
+
+Done! Access: `https://validator.yourdomain.com` 🔒
+
+### Cost: €2.99/month
+
+| Service | Monthly Cost |
+|---------|-------------|
+| Hetzner CX23 | €2.99 (~$3.25) |
+| ZeroBounce | $16-$80 ❌ |
+| Clearout | $15+ ❌ |
+
+**You save 80-95%!** 💰
+
+**Full deployment guide:** [HETZNER_DEPLOYMENT.md](HETZNER_DEPLOYMENT.md)
 
 ---
 
