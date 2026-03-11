@@ -1245,6 +1245,9 @@ const Validator = {
       domainAge: null,
       websiteActive: null,
       websiteProtocol: null,
+      smtpVerified: false,
+      mailboxExists: "unknown",
+      smtpCode: null,
       isDuplicate: false,
       duplicateOf: null,
       typoSuggestion: null,
@@ -1442,6 +1445,37 @@ const Validator = {
       }
     }
 
+    // SMTP Mailbox Verification - DEEP level only
+    // Real inbox checking - use sparingly (rate limited to 20/min)
+    if (
+      validationLevel === "deep" &&
+      !result.disposable &&
+      !result.isSpamTrap &&
+      result.mxFound &&
+      result.isCorporateEmail // Only for corporate emails, avoid free providers
+    ) {
+      try {
+        const smtpResult = await this.checkSMTP(normalized);
+        result.smtpVerified = true;
+        result.mailboxExists = smtpResult.exists;
+        result.smtpCode = smtpResult.smtpCode;
+
+        if (smtpResult.exists === true) {
+          result.allWarnings.push("✅ Mailbox verified via SMTP (inbox exists)");
+          result.score += 15; // Bonus for confirmed mailbox
+        } else if (smtpResult.exists === false) {
+          result.allWarnings.push("❌ Mailbox does not exist (SMTP verification failed)");
+          result.score -= 30; // Penalty for non-existent mailbox
+        } else if (smtpResult.exists === "unknown") {
+          result.allWarnings.push("⚠️ SMTP verification inconclusive (server blocked or catch-all)");
+        }
+      } catch (e) {
+        result.smtpVerified = false;
+        result.mailboxExists = "unknown";
+        console.warn("SMTP verification failed for", normalized, e);
+      }
+    }
+
     // Provider-specific validation
     result.providerWarnings = this.validateProviderConfig(result);
     if (result.providerWarnings.length > 0) {
@@ -1449,9 +1483,9 @@ const Validator = {
     }
 
     // IMPORTANT: Add warning about SMTP verification limitation
-    if (result.mxFound && !result.bounceCode) {
+    if (result.mxFound && !result.bounceCode && !result.smtpVerified) {
       result.allWarnings.push(
-        "⚠️ DNS checks passed, but mailbox existence NOT verified (no SMTP check). A score of 80-85 means 'likely deliverable' not 'guaranteed'.",
+        "⚠️ DNS checks passed, but mailbox existence NOT verified (no SMTP check). Use Deep validation for mailbox verification. Score of 80-85 means 'likely deliverable' not 'guaranteed'.",
       );
     }
 
@@ -2829,6 +2863,20 @@ const UI = {
     } else if (result.websiteActive === false && result.isCorporateEmail) {
       html += `<br><small style="color: #f59e0b; font-weight: 500;">⚠️ No website</small>`;
       html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Mail-only or inactive</small>`;
+    }
+
+    // SMTP Mailbox Verification status (Deep validation only)
+    if (result.smtpVerified) {
+      if (result.mailboxExists === true) {
+        html += `<br><small style="color: #10b981; font-weight: 600;">✅ Mailbox verified</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: Inbox exists</small>`;
+      } else if (result.mailboxExists === false) {
+        html += `<br><small style="color: #ef4444; font-weight: 600;">❌ Mailbox not found</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: No inbox</small>`;
+      } else if (result.mailboxExists === "unknown") {
+        html += `<br><small style="color: #f59e0b; font-weight: 500;">⚠️ SMTP inconclusive</small>`;
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Server blocked check</small>`;
+      }
     }
 
     html += `</div>`;
