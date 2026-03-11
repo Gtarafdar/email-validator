@@ -486,13 +486,20 @@ const Validator = {
   smtpProviders: [
     {
       name: "render",
-      url: window.location.origin, // Current host (Render)
+      url: "https://email-validator-pwk6.onrender.com", // Render deployment
       blocked: false,
       lastChecked: null,
       ipHealth: null, // Cached IP health status
       lastHealthCheck: null, // Last time IP was checked
     },
-    // Add Railway deployment: { name: 'railway', url: 'https://YOUR_PROJECT.up.railway.app', blocked: false, lastChecked: null, ipHealth: null, lastHealthCheck: null },
+    {
+      name: "railway",
+      url: "https://email-validator-production-afb4.up.railway.app", // Railway deployment
+      blocked: false,
+      lastChecked: null,
+      ipHealth: null,
+      lastHealthCheck: null,
+    },
     // Add Fly.io deployment: { name: 'fly', url: 'https://YOUR_PROJECT.fly.dev', blocked: false, lastChecked: null, ipHealth: null, lastHealthCheck: null },
   ],
   currentProviderIndex: 0,
