@@ -6,6 +6,9 @@
  * All validation logic and data storage happens client-side.
  */
 
+// Load environment variables from .env file (for local development)
+require('dotenv').config();
+
 const express = require("express");
 const dns = require("node:dns").promises;
 const cors = require("cors");
@@ -14,10 +17,29 @@ const whoiser = require("whoiser");
 const https = require("node:https");
 const http = require("node:http");
 const net = require("node:net");
+const { SocksClient } = require("socks");
 
 const app = express();
 const PORT = process.env.PORT || 8787;
 const API_KEY = process.env.API_KEY || "dev-key-change-in-production";
+
+// SOCKS5 Proxy Configuration (Surfshark VPN or other SOCKS5 proxy)
+// Set these environment variables to route SMTP through VPN:
+// SOCKS5_HOST=proxy-nl.surfshark.com
+// SOCKS5_PORT=1080
+// SOCKS5_USER=your-surfshark-username
+// SOCKS5_PASS=your-surfshark-password
+const SOCKS5_CONFIG = process.env.SOCKS5_HOST ? {
+  host: process.env.SOCKS5_HOST,
+  port: parseInt(process.env.SOCKS5_PORT || "1080"),
+  user: process.env.SOCKS5_USER,
+  pass: process.env.SOCKS5_PASS,
+} : null;
+
+if (SOCKS5_CONFIG) {
+  console.log(`✓ SOCKS5 proxy enabled: ${SOCKS5_CONFIG.host}:${SOCKS5_CONFIG.port}`);
+  console.log(`  This routes SMTP through VPN for clean IPs!`);
+}
 
 // Rate limiting to prevent abuse
 const limiter = rateLimit({
@@ -727,9 +749,39 @@ app.post(
       mxRecords.sort((a, b) => a.priority - b.priority);
 
       // IMPROVED: SMTP verification with multiple strategies
+      // Now supports SOCKS5 proxy (VPN) for clean IP routing!
       const verifySMTP = (mxHost, strategy = 1) => {
-        return new Promise((resolve, reject) => {
-          const socket = net.createConnection(25, mxHost);
+        return new Promise(async (resolve, reject) => {
+          let socket;
+          
+          // If SOCKS5 proxy is configured, route through VPN
+          if (SOCKS5_CONFIG) {
+            try {
+              const options = {
+                proxy: {
+                  host: SOCKS5_CONFIG.host,
+                  port: SOCKS5_CONFIG.port,
+                  type: 5, // SOCKS5
+                  userId: SOCKS5_CONFIG.user,
+                  password: SOCKS5_CONFIG.pass,
+                },
+                command: 'connect',
+                destination: {
+                  host: mxHost,
+                  port: 25
+                }
+              };
+              
+              const info = await SocksClient.createConnection(options);
+              socket = info.socket;
+            } catch (proxyError) {
+              return reject(new Error(`Proxy connection failed: ${proxyError.message}`));
+            }
+          } else {
+            // No proxy - direct connection (may be blacklisted on free hosting)
+            socket = net.createConnection(25, mxHost);
+          }
+          
           const timeout = setTimeout(() => {
             socket.destroy();
             reject(new Error("Connection timeout"));
