@@ -1181,7 +1181,16 @@ const Validator = {
         score += 2; // HTTPS = extra trust (total +10 for active HTTPS site)
       }
     } else if (result.websiteActive === false && result.isCorporateEmail) {
-      score -= 5; // Corporate domain with no website = suspicious
+      // IMPROVED: Corporate domain with no website is MORE suspicious
+      score -= 10; // Increased from -5 (mail-only domains often abandoned/fake)
+
+      // EXTRA PENALTY: If domain age is unknown AND no website, very suspicious
+      if (!result.domainAge || result.domainAge.years < 0.5) {
+        score -= 10; // New domain + no website + corporate email = high risk
+        result.allWarnings.push(
+          "⚠️ RISK: Corporate domain with no website and unknown/new domain age. Likely abandoned or fake.",
+        );
+      }
     }
 
     // PENALTIES for issues
@@ -1823,7 +1832,7 @@ const Validator = {
                 " MX server(s).",
             );
           }
-          result.score -= 15; // Reduce confidence
+          result.score -= 5; // Smaller penalty when IP is blacklisted (not email's fault)
         } else if (smtpResult.reason === "temporary_error") {
           // Temporary error (greylisting, rate limit)
           result.allWarnings.push(
@@ -1831,18 +1840,44 @@ const Validator = {
           );
           result.score -= 10; // Smaller penalty for temporary issues
         } else if (smtpResult.exists === "unknown") {
-          // Other inconclusive result
+          // Other inconclusive result - use smart heuristics instead of heavy penalty
           result.allWarnings.push(
             "⚠️ SMTP verification inconclusive - cannot confirm mailbox exists. Server may have disabled verification. " +
               (smtpResult.mxTried?.length || 1) +
-              " MX server(s) tried. Recommend manual verification.",
+              " MX server(s) tried. Relying on other signals (domain reputation, auth records, etc.).",
           );
-          result.score -= 15; // Reduce confidence
+
+          // SMART HEURISTIC: If strong positive signals exist, don't penalize heavily
+          const hasStrongPositiveSignals =
+            result.mxFound &&
+            result.spf &&
+            !result.disposable &&
+            !result.isSpamTrap &&
+            !result.typoSuggestion;
+
+          if (hasStrongPositiveSignals) {
+            result.score -= 5; // Light penalty - other signals look good
+          } else {
+            result.score -= 15; // Heavier penalty - other signals are weak too
+          }
         }
       } catch (e) {
         result.smtpVerified = false;
         result.mailboxExists = "unknown";
-        result.score -= 15; // Also reduce score on SMTP check failure
+
+        // SMART HEURISTIC: Don't penalize heavily if other signals are strong
+        const hasStrongPositiveSignals =
+          result.mxFound &&
+          result.spf &&
+          !result.disposable &&
+          !result.isSpamTrap &&
+          !result.typoSuggestion;
+
+        if (hasStrongPositiveSignals) {
+          result.score -= 5; // Light penalty
+        } else {
+          result.score -= 15; // Normal penalty
+        }
         console.warn("SMTP verification failed for", normalized, e);
       }
     }
@@ -3453,10 +3488,25 @@ const UI = {
     const apiKeyInput = document.getElementById("apiKeyInput");
     const apiKeyStatus = document.getElementById("apiKeyStatus");
 
+    // AUTO-DETECT LOCALHOST: Set default API key for local development
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "";
+
+    if (isLocalhost && !ApiConfig.isConfigured()) {
+      // Auto-set default API key for localhost
+      const defaultKey = "dev-key-change-in-production";
+      ApiConfig.setApiKey(defaultKey);
+      console.log("✅ Auto-configured API key for localhost development");
+    }
+
     if (apiKeyInput && ApiConfig.isConfigured()) {
       apiKeyInput.value = ApiConfig.getApiKey();
       if (apiKeyStatus) {
-        apiKeyStatus.textContent = "✅ API key configured";
+        apiKeyStatus.textContent = isLocalhost
+          ? "✅ API key configured (localhost auto-detected)"
+          : "✅ API key configured";
         apiKeyStatus.style.color = "#10b981";
       }
     } else if (apiKeyStatus) {
