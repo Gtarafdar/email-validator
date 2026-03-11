@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMTP Diagnostic Tool</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 2rem;
+        }
+        h1 {
+            color: #1e293b;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        .section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #475569;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .result {
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+        .status.success { background: #dcfce7; color: #166534; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.warning { background: #fef3c7; color: #92400e; }
+        .status.info { background: #dbeafe; color: #1e40af; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover { background: #5568d3; transform: translateY(-2px); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .alert.error { background: #fee2e2; border-left: 4px solid #dc2626; color: #991b1b; }
+        .alert.success { background: #dcfce7; border-left: 4px solid #16a34a; color: #166534; }
+        .alert.warning { background: #fef3c7; border-left: 4px solid #f59e0b; color: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 SMTP Diagnostic Tool</h1>
+        <p style="color: #64748b; margin-bottom: 2rem;">
+            This tool checks why Render's SMTP verification isn't matching ZeroBounce results.
+        </p>
+
+        <div class="section">
+            <h2>Step 1: Check Server IP</h2>
+            <button onclick="checkIP()" id="btn-ip">Check Render's IP Address</button>
+            <div id="result-ip" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 2: Check IP Blacklist Status</h2>
+            <button onclick="checkBlacklist()" id="btn-blacklist" disabled>Check IP on 7 RBLs</button>
+            <div id="result-blacklist" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 3: Test SMTP Verification</h2>
+            <input type="text" id="test-email" placeholder="riyad@bonfiremedia.co.za" 
+                   style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; margin-bottom: 1rem;">
+            <button onclick="testSMTP()" id="btn-smtp" disabled>Test SMTP Verification</button>
+            <div id="result-smtp" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 4: Compare with Local Server</h2>
+            <button onclick="testLocal()" id="btn-local">Test on Local Server (localhost:8787)</button>
+            <div id="result-local" class="result" style="display: none;"></div>
+        </div>
+
+        <div id="diagnosis" style="margin-top: 2rem;"></div>
+    </div>
+
+    <script>
+        const API_KEY = 'dev-key-change-in-production';
+        const RENDER_URL = window.location.origin;
+        let currentIP = null;
+
+        async function checkIP() {
+            const btn = document.getElementById('btn-ip');
+            const result = document.getElementById('result-ip');
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Checking...<span class="loading"></span>';
+            result.style.display = 'block';
+            result.textContent = 'Fetching server IP...';
+
+            try {
+                const response = await fetch(`${RENDER_URL}/api/get-public-ip`, {
+                    headers: { 'X-API-Key': API_KEY }
+                });
+                
+                const data = await response.json();
+                currentIP = data.ip;
+                
+                result.innerHTML = `
+<span class="status success">✓ SUCCESS</span>
+
+Server IP: ${data.ip}
+Service: ${data.service}
+Checked at: ${new Date(data.timestamp).toLocaleString()}
+`;
+                
+                document.getElementById('btn-blacklist').disabled = false;
+                document.getElementById('btn-smtp').disabled = false;
+            } catch (error) {
+                result.innerHTML = `<span class="status error">✗ FAILED</span>\n\n${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Check Render\'s IP Address';
+            }
+        }
+
+        async function checkBlacklist() {
+            if (!currentIP) {
+                alert('Please check IP first');
+                return;
+            }
+
+            const btn = document.getElementById('btn-blacklist');
+            const result = document.getElementById('result-blacklist');
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Checking 7 RBLs...<span class="loading"></span>';
+            result.style.display = 'block';
+            result.textContent = 'Querying Spamhaus, Barracuda, SORBS, SpamCop...';
+
+            try {
+                const response = await fetch(`${RENDER_URL}/api/check-ip-blacklist`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY
+                    },
+                    body: JSON.stringify({ ip: currentIP })
+                });
+                
+                const data = await response.json();
+                
+                const statusClass = data.blacklisted ? 'error' : 'success';
+                const statusIcon = data.blacklisted ? '✗' : '✓';
+                
+                result.innerHTML = `
+<span class="status ${statusClass}">${statusIcon} ${data.blacklisted ? 'BLACKLISTED' : 'CLEAN'}</span>
+
+IP: ${data.ip}
+Blacklisted: ${data.blacklisted ? 'YES ⚠️' : 'NO ✓'}
+Blacklisted on: ${data.blacklistedOn.length > 0 ? data.blacklistedOn.join(', ') : 'None'}
+RBLs checked: ${data.checkedRBLs}
+Message: ${data.message}
+
+${data.blacklisted ? '⚠️ This explains why SMTP verification fails! Google blocks blacklisted IPs.' : '✓ IP is clean. SMTP issues are likely due to other factors.'}
+`;
+                
+                if (data.blacklisted) {
+                    showDiagnosis('blacklist');
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="status error">✗ FAILED</span>\n\n${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Check IP on 7 RBLs';
+            }
+        }
+
+        async function testSMTP() {
+            const email = document.getElementById('test-email').value || 'riyad@bonfiremedia.co.za';
+            const btn = document.getElementById('btn-smtp');
+            const result = document.getElementById('result-smtp');
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Testing SMTP...<span class="loading"></span>';
+            result.style.display = 'block';
+            result.textContent = `Testing ${email}...`;
+
+            try {
+                const response = await fetch(`${RENDER_URL}/api/smtp-verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                const statusClass = data.exists === false ? 'success' : data.exists === true ? 'warning' : 'error';
+                const statusIcon = data.exists === false ? '✓' : data.exists === true ? '!' : '?';
+                
+                result.innerHTML = `
+<span class="status ${statusClass}">${statusIcon} ${data.exists === false ? 'INVALID (CORRECT!)' : data.exists === true ? 'VALID' : 'INCONCLUSIVE (PROBLEM!)'}</span>
+
+Email: ${data.email}
+Mailbox exists: ${data.exists}
+SMTP Code: ${data.smtpCode || 'N/A'}
+Reason: ${data.reason || 'N/A'}
+Message: ${data.message}
+Confidence: ${data.confidence}
+MX tried: ${data.mxTried?.join(', ') || 'N/A'}
+Response: ${data.responseText || 'N/A'}
+
+${data.exists === 'unknown' ? '⚠️ THIS IS THE PROBLEM! Should return false for invalid emails.' : data.exists === false ? '✓ Working correctly! Returns false for invalid email.' : ''}
+`;
+
+                if (data.exists === 'unknown') {
+                    showDiagnosis('smtp_unknown', data);
+                } else if (data.exists === false) {
+                    showDiagnosis('smtp_working');
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="status error">✗ FAILED</span>\n\n${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Test SMTP Verification';
+            }
+        }
+
+        async function testLocal() {
+            const email = document.getElementById('test-email').value || 'riyad@bonfiremedia.co.za';
+            const btn = document.getElementById('btn-local');
+            const result = document.getElementById('result-local');
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Testing Local...<span class="loading"></span>';
+            result.style.display = 'block';
+            result.textContent = `Testing ${email} on localhost:8787...`;
+
+            try {
+                const response = await fetch(`http://localhost:8787/api/smtp-verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                const statusClass = data.exists === false ? 'success' : data.exists === true ? 'warning' : 'info';
+                const statusIcon = data.exists === false ? '✓' : data.exists === true ? '!' : '?';
+                
+                result.innerHTML = `
+<span class="status ${statusClass}">${statusIcon} LOCAL RESULT</span>
+
+Email: ${data.email}
+Mailbox exists: ${data.exists}
+SMTP Code: ${data.smtpCode || 'N/A'}
+Message: ${data.message}
+Confidence: ${data.confidence}
+Response: ${data.responseText || 'N/A'}
+
+${data.exists === false ? '✓ Local server correctly identifies as INVALID!' : ''}
+`;
+
+                if (data.exists === false) {
+                    showDiagnosis('local_works');
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="status error">✗ FAILED</span>\n\n${error.message}\n\nMake sure local server is running on port 8787`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Test on Local Server (localhost:8787)';
+            }
+        }
+
+        function showDiagnosis(type, data = null) {
+            const div = document.getElementById('diagnosis');
+            
+            if (type === 'blacklist') {
+                div.innerHTML = `
+                    <div class="alert error">
+                        <h3 style="margin-bottom: 0.5rem;">🚫 DIAGNOSIS: IP Blacklisted</h3>
+                        <p><strong>Problem:</strong> Render's IP is blacklisted on Spamhaus/RBL databases.</p>
+                        <p><strong>Impact:</strong> Google's mail servers automatically reject SMTP connections from blacklisted IPs.</p>
+                        <p><strong>Solution:</strong> Deploy to alternative providers:<br>
+                        • <strong>Railway.app</strong> (free 500 hours/month)<br>
+                        • <strong>Fly.io</strong> (free 3 VMs)<br>
+                        • See <code>DEPLOY_QUICK_START.md</code> for instructions</p>
+                    </div>
+                `;
+            } else if (type === 'smtp_unknown') {
+                div.innerHTML = `
+                    <div class="alert warning">
+                        <h3 style="margin-bottom: 0.5rem;">⚠️ DIAGNOSIS: SMTP Returns "Unknown"</h3>
+                        <p><strong>Problem:</strong> SMTP verification returns "unknown" instead of "false" for invalid emails.</p>
+                        <p><strong>Reason:</strong> ${data.responseText || 'Connection/timeout issue'}</p>
+                        <p><strong>Solution:</strong> Check if IP is blacklisted above. If yes, deploy to alternative provider.</p>
+                    </div>
+                `;
+            } else if (type === 'smtp_working') {
+                div.innerHTML = `
+                    <div class="alert success">
+                        <h3 style="margin-bottom: 0.5rem;">✅ DIAGNOSIS: SMTP Working Correctly!</h3>
+                        <p><strong>Status:</strong> SMTP verification correctly identifies invalid emails.</p>
+                        <p><strong>Next step:</strong> Clear browser cache and re-validate emails to see correct results.</p>
+                    </div>
+                `;
+            } else if (type === 'local_works') {
+                div.innerHTML = `
+                    <div class="alert success">
+                        <h3 style="margin-bottom: 0.5rem;">✅ Local Server Works!</h3>
+                        <p><strong>Status:</strong> Your code is correct! Local SMTP verification works perfectly.</p>
+                        <p><strong>Problem:</strong> Render's infrastructure (IP blacklist or network issues).</p>
+                        <p><strong>Solution:</strong> Deploy to Railway or Fly.io for clean IPs.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-run IP check on load
+        window.addEventListener('load', () => {
+            document.getElementById('test-email').value = 'riyad@bonfiremedia.co.za';
+        });
+    </script>
+</body>
+</html>
