@@ -173,8 +173,24 @@
       <div id="tab-bulk" class="tab-content">
         <section class="card">
           <h2>Bulk Email Validation</h2>
+          
+          <!-- Validation Level Selector for Bulk -->
+          <div class="validation-level-selector" style="margin-bottom: 20px;">
+            <label for="bulkValidationLevel">Validation Level:</label>
+            <select id="bulkValidationLevel" class="select">
+              <option value="quick">⚡ Quick (Syntax + Basic)</option>
+              <option value="standard" selected>
+                🔍 Standard (+ DNS + Auth)
+              </option>
+              <option value="deep">🔬 Deep (+ SMTP Mailbox Verification)</option>
+            </select>
+            <span class="validation-hint" style="display: block; margin-top: 8px; font-size: 0.875rem; color: #6b7280;">
+              💡 <strong>Deep validation</strong> checks real mailboxes via SMTP (slower, 20/min limit)
+            </span>
+          </div>
+
           <div class="validation-controls">
-            <p class="hint">Paste email addresses, one per line</p>
+            <p class="hint">Paste email addresses, one per line (max 100)</p>
             <div
               id="validationProgress"
               class="progress-bar"
@@ -233,6 +249,21 @@
             CSV must have an <strong>email</strong> column. Optionally include a
             <strong>bounce</strong> column.
           </p>
+
+          <!-- Validation Level Selector for CSV -->
+          <div class="validation-level-selector" style="margin-bottom: 24px;">
+            <label for="csvValidationLevel">Validation Level:</label>
+            <select id="csvValidationLevel" class="select">
+              <option value="quick">⚡ Quick (Syntax + Basic)</option>
+              <option value="standard" selected>
+                🔍 Standard (+ DNS + Auth)
+              </option>
+              <option value="deep">🔬 Deep (+ SMTP Mailbox Verification)</option>
+            </select>
+            <span class="validation-hint" style="display: block; margin-top: 8px; font-size: 0.875rem; color: #6b7280;">
+              💡 <strong>Deep validation</strong> includes real mailbox checking via SMTP (20 checks/min limit)
+            </span>
+          </div>
 
           <!-- Import Format Selector -->
           <div class="import-format-selector">

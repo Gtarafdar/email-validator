@@ -1461,13 +1461,19 @@ const Validator = {
         result.smtpCode = smtpResult.smtpCode;
 
         if (smtpResult.exists === true) {
-          result.allWarnings.push("✅ Mailbox verified via SMTP (inbox exists)");
+          result.allWarnings.push(
+            "✅ Mailbox verified via SMTP (inbox exists)",
+          );
           result.score += 15; // Bonus for confirmed mailbox
         } else if (smtpResult.exists === false) {
-          result.allWarnings.push("❌ Mailbox does not exist (SMTP verification failed)");
+          result.allWarnings.push(
+            "❌ Mailbox does not exist (SMTP verification failed)",
+          );
           result.score -= 30; // Penalty for non-existent mailbox
         } else if (smtpResult.exists === "unknown") {
-          result.allWarnings.push("⚠️ SMTP verification inconclusive (server blocked or catch-all)");
+          result.allWarnings.push(
+            "⚠️ SMTP verification inconclusive (server blocked or catch-all)",
+          );
         }
       } catch (e) {
         result.smtpVerified = false;
@@ -2299,7 +2305,9 @@ const UI = {
 
         // Get selected validation level
         const validationLevel =
-          document.getElementById("validationLevel")?.value || "standard";
+          document.getElementById("bulkValidationLevel")?.value || 
+          document.getElementById("validationLevel")?.value || 
+          "standard";
 
         // Validate email
         const result = await Validator.validate(
@@ -2373,7 +2381,9 @@ const UI = {
       const results = [];
       const total = emails.length;
       const validationLevel =
-        document.getElementById("validationLevel")?.value || "standard";
+        document.getElementById("csvValidationLevel")?.value || 
+        document.getElementById("validationLevel")?.value || 
+        "standard";
 
       // Show progress for large CSVs
       if (total > 100) {
