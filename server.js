@@ -446,6 +446,80 @@ app.post("/api/whois-lookup", authenticateAPIKey, async (req, res) => {
 });
 
 /**
+ * IP Blacklist Check Endpoint
+ * Checks if an IP is blacklisted on major RBLs (Spamhaus, Barracuda, etc.)
+ * Used for automatic provider health verification
+ */
+app.post("/api/check-ip-blacklist", authenticateAPIKey, async (req, res) => {
+  try {
+    const { ip } = req.body;
+
+    if (!ip || typeof ip !== "string") {
+      return res.status(400).json({ error: "IP address is required" });
+    }
+
+    // Validate IP format (IPv4)
+    if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)) {
+      return res.status(400).json({ error: "Invalid IPv4 address format" });
+    }
+
+    // Reverse IP for DNS-based blacklist queries
+    const reverseIp = ip.split(".").reverse().join(".");
+
+    // Major DNS-based blacklists (RBLs)
+    const blacklists = [
+      { name: "Spamhaus ZEN", domain: "zen.spamhaus.org" },
+      { name: "Spamhaus PBL", domain: "pbl.spamhaus.org" },
+      { name: "Spamhaus SBL", domain: "sbl.spamhaus.org" },
+      { name: "Spamhaus XBL", domain: "xbl.spamhaus.org" },
+      { name: "Barracuda", domain: "b.barracudacentral.org" },
+      { name: "SORBS", domain: "dnsbl.sorbs.net" },
+      { name: "SpamCop", domain: "bl.spamcop.net" },
+    ];
+
+    // Check each blacklist in parallel
+    const checks = await Promise.allSettled(
+      blacklists.map(async (rbl) => {
+        try {
+          const query = `${reverseIp}.${rbl.domain}`;
+          await dns.resolve4(query);
+          // If query succeeds, IP is blacklisted
+          return { name: rbl.name, blacklisted: true, query };
+        } catch (error) {
+          // If query fails (NXDOMAIN), IP is NOT blacklisted
+          return { name: rbl.name, blacklisted: false };
+        }
+      }),
+    );
+
+    // Process results
+    const results = checks
+      .filter((r) => r.status === "fulfilled")
+      .map((r) => r.value);
+
+    const blacklistedOn = results.filter((r) => r.blacklisted);
+    const isBlacklisted = blacklistedOn.length > 0;
+
+    res.json({
+      ip,
+      blacklisted: isBlacklisted,
+      blacklistedOn: blacklistedOn.map((r) => r.name),
+      checkedRBLs: results.length,
+      message: isBlacklisted
+        ? `IP is blacklisted on ${blacklistedOn.length} RBL(s)`
+        : "IP is clean (not blacklisted)",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("IP blacklist check error:", error.message);
+    res.status(500).json({
+      error: "IP blacklist check failed",
+      detail: error.message,
+    });
+  }
+});
+
+/**
  * Website accessibility check endpoint
  * Checks if domain has an active website (HTTP/HTTPS)
  */
@@ -541,6 +615,54 @@ app.post("/api/website-check", authenticateAPIKey, async (req, res) => {
       error: "Website check failed",
       detail: error.message,
     });
+  }
+});
+
+/**
+ * Get Server's Public IP Address
+ * Used by frontend to check if this provider's IP is blacklisted
+ */
+app.get("/api/get-public-ip", authenticateAPIKey, async (req, res) => {
+  try {
+    // Try multiple IP services for reliability
+    const ipServices = [
+      "https://api.ipify.org?format=json",
+      "https://api.my-ip.io/ip.json",
+      "https://ipinfo.io/json",
+    ];
+
+    for (const service of ipServices) {
+      try {
+        const response = await new Promise((resolve, reject) => {
+          https
+            .get(service, (resp) => {
+              let data = "";
+              resp.on("data", (chunk) => (data += chunk));
+              resp.on("end", () => resolve(data));
+              resp.on("error", reject);
+            })
+            .on("error", reject);
+        });
+
+        const parsed = JSON.parse(response);
+        const ip = parsed.ip || parsed.IP;
+
+        if (ip) {
+          return res.json({
+            ip,
+            service: service.split("/")[2],
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch {
+        continue; // Try next service
+      }
+    }
+
+    res.status(500).json({ error: "Could not determine public IP" });
+  } catch (error) {
+    console.error("Get public IP error:", error.message);
+    res.status(500).json({ error: "Failed to get public IP" });
   }
 });
 

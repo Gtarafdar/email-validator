@@ -485,27 +485,121 @@ const Validator = {
   // Add more providers here as you deploy to them (Railway, Fly.io, etc.)
   smtpProviders: [
     {
-      name: 'render',
+      name: "render",
       url: window.location.origin, // Current host (Render)
       blocked: false,
-      lastChecked: null
+      lastChecked: null,
+      ipHealth: null, // Cached IP health status
+      lastHealthCheck: null, // Last time IP was checked
     },
-    // Add Railway deployment: { name: 'railway', url: 'https://YOUR_PROJECT.up.railway.app', blocked: false, lastChecked: null },
-    // Add Fly.io deployment: { name: 'fly', url: 'https://YOUR_PROJECT.fly.dev', blocked: false, lastChecked: null },
+    // Add Railway deployment: { name: 'railway', url: 'https://YOUR_PROJECT.up.railway.app', blocked: false, lastChecked: null, ipHealth: null, lastHealthCheck: null },
+    // Add Fly.io deployment: { name: 'fly', url: 'https://YOUR_PROJECT.fly.dev', blocked: false, lastChecked: null, ipHealth: null, lastHealthCheck: null },
   ],
   currentProviderIndex: 0,
+
+  // Check provider's IP health (blacklist status)
+  async checkProviderIPHealth(provider) {
+    try {
+      const now = Date.now();
+      const HEALTH_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+      // Use cached result if recent (within 30 minutes)
+      if (
+        provider.ipHealth &&
+        provider.lastHealthCheck &&
+        now - provider.lastHealthCheck < HEALTH_CHECK_INTERVAL
+      ) {
+        console.log(
+          `ℹ️ Using cached IP health for ${provider.name}: ${provider.ipHealth.blacklisted ? "BLACKLISTED" : "CLEAN"}`,
+        );
+        return provider.ipHealth;
+      }
+
+      console.log(`🔍 Checking IP health for ${provider.name}...`);
+
+      // Get provider's public IP
+      const ipResponse = await fetch(`${provider.url}/api/get-public-ip`, {
+        method: "GET",
+        headers: ApiConfig.getHeaders(),
+      });
+
+      if (!ipResponse.ok) {
+        console.warn(`Could not get IP for ${provider.name}`);
+        return null;
+      }
+
+      const ipData = await ipResponse.json();
+      const publicIP = ipData.ip;
+
+      if (!publicIP) {
+        console.warn(`No IP returned for ${provider.name}`);
+        return null;
+      }
+
+      console.log(`📍 ${provider.name} IP: ${publicIP}`);
+
+      // Check if IP is blacklisted
+      const blacklistResponse = await fetch(
+        `${provider.url}/api/check-ip-blacklist`,
+        {
+          method: "POST",
+          headers: ApiConfig.getHeaders(),
+          body: JSON.stringify({ ip: publicIP }),
+        },
+      );
+
+      if (!blacklistResponse.ok) {
+        console.warn(`Could not check blacklist for ${provider.name}`);
+        return null;
+      }
+
+      const blacklistData = await blacklistResponse.json();
+
+      // Cache the health status
+      const health = {
+        ip: publicIP,
+        blacklisted: blacklistData.blacklisted,
+        blacklistedOn: blacklistData.blacklistedOn || [],
+        checkedAt: new Date().toISOString(),
+      };
+
+      provider.ipHealth = health;
+      provider.lastHealthCheck = now;
+
+      if (health.blacklisted) {
+        console.warn(
+          `⚠️ ${provider.name} IP ${publicIP} is BLACKLISTED on: ${health.blacklistedOn.join(", ")}`,
+        );
+        // Mark as blocked
+        provider.blocked = true;
+        provider.lastChecked = now;
+      } else {
+        console.log(`✅ ${provider.name} IP ${publicIP} is CLEAN`);
+      }
+
+      return health;
+    } catch (error) {
+      console.warn(
+        `Failed to check IP health for ${provider.name}:`,
+        error.message,
+      );
+      return null;
+    }
+  },
 
   // Reset blocked providers after 24 hours
   resetBlockedProviders() {
     const now = Date.now();
     const RESET_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
-    
-    this.smtpProviders.forEach(provider => {
+
+    this.smtpProviders.forEach((provider) => {
       if (provider.blocked && provider.lastChecked) {
         if (now - provider.lastChecked > RESET_INTERVAL) {
           console.log(`♻️ Resetting blocked status for ${provider.name}`);
           provider.blocked = false;
           provider.lastChecked = null;
+          provider.ipHealth = null; // Clear cached health
+          provider.lastHealthCheck = null;
         }
       }
     });
@@ -1257,32 +1351,72 @@ const Validator = {
   async checkSMTP(email) {
     // Reset blocked providers if 24 hours passed
     this.resetBlockedProviders();
-    
-    // Try each provider until one works
-    const availableProviders = this.smtpProviders.filter(p => !p.blocked);
-    
+
+    // Get unblocked providers
+    let availableProviders = this.smtpProviders.filter((p) => !p.blocked);
+
     if (availableProviders.length === 0) {
-      console.warn('⚠️ All SMTP providers are blocked. Resetting all...');
+      console.warn("⚠️ All SMTP providers are blocked. Resetting all...");
       // Reset all if all blocked
-      this.smtpProviders.forEach(p => {
+      this.smtpProviders.forEach((p) => {
         p.blocked = false;
         p.lastChecked = null;
+        p.ipHealth = null;
+        p.lastHealthCheck = null;
       });
+      availableProviders = this.smtpProviders;
     }
-    
+
+    // SMART PROVIDER SELECTION: Check IP health before using
+    // Sort providers: verified clean IPs first, then unchecked, then blocked last
+    const sortedProviders = [...availableProviders].sort((a, b) => {
+      // Providers with clean IPs first
+      if (a.ipHealth && !a.ipHealth.blacklisted) return -1;
+      if (b.ipHealth && !b.ipHealth.blacklisted) return 1;
+
+      // Unchecked providers next
+      if (!a.ipHealth && b.ipHealth) return -1;
+      if (a.ipHealth && !b.ipHealth) return 1;
+
+      // Keep original order for rest
+      return 0;
+    });
+
     // Try up to 3 providers
-    const maxAttempts = Math.min(3, this.smtpProviders.length);
-    
+    const maxAttempts = Math.min(3, sortedProviders.length);
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const providerIndex = (this.currentProviderIndex + attempt) % this.smtpProviders.length;
-      const provider = this.smtpProviders[providerIndex];
-      
+      const provider = sortedProviders[attempt];
+
       // Skip if blocked
       if (provider.blocked) continue;
-      
+
+      // AUTOMATIC IP HEALTH CHECK: Verify provider's IP is not blacklisted
+      const health = await this.checkProviderIPHealth(provider);
+
+      // If IP is blacklisted, skip this provider
+      if (health && health.blacklisted) {
+        console.warn(
+          `⚠️ Skipping ${provider.name} - IP is blacklisted on ${health.blacklistedOn.join(", ")}`,
+        );
+        provider.blocked = true;
+        provider.lastChecked = Date.now();
+
+        if (attempt === 0) {
+          UI.showNotification(
+            `⚠️ ${provider.name} IP blacklisted. Trying clean backup provider...`,
+            "warning",
+          );
+        }
+
+        continue; // Try next provider
+      }
+
       try {
-        console.log(`🔍 Trying SMTP verification via ${provider.name}...`);
-        
+        console.log(
+          `🔍 Trying SMTP verification via ${provider.name}${health ? " (IP verified clean)" : ""}...`,
+        );
+
         const response = await fetch(`${provider.url}/api/smtp-verify`, {
           method: "POST",
           headers: ApiConfig.getHeaders(),
@@ -1298,63 +1432,83 @@ const Validator = {
         }
 
         if (!response.ok) {
-          console.warn(`${provider.name} returned error status ${response.status}`);
+          console.warn(
+            `${provider.name} returned error status ${response.status}`,
+          );
           continue; // Try next provider
         }
 
         const data = await response.json();
-        
-        // Check if this provider's IP is blacklisted
-        if (data.reason === 'policy_block' && data.responseText) {
-          const isBlacklisted = 
-            data.responseText.toLowerCase().includes('spamhaus') ||
-            data.responseText.toLowerCase().includes('blacklist') ||
-            data.responseText.toLowerCase().includes('rbl');
-          
+
+        // Double-check for blacklist indicators in SMTP response
+        if (data.reason === "policy_block" && data.responseText) {
+          const isBlacklisted =
+            data.responseText.toLowerCase().includes("spamhaus") ||
+            data.responseText.toLowerCase().includes("blacklist") ||
+            data.responseText.toLowerCase().includes("rbl") ||
+            data.responseText.toLowerCase().includes("blocked using");
+
           if (isBlacklisted) {
-            console.warn(`🚫 ${provider.name} IP is blacklisted on Spamhaus. Marking as blocked and trying next provider...`);
+            console.warn(
+              `🚫 ${provider.name} IP blocked during SMTP check. Marking as blocked and trying next provider...`,
+            );
             provider.blocked = true;
             provider.lastChecked = Date.now();
-            
+            provider.ipHealth = {
+              blacklisted: true,
+              blacklistedOn: ["Detected during SMTP check"],
+              checkedAt: new Date().toISOString(),
+            };
+
             // Show notification only on first detection
             if (attempt === 0) {
               UI.showNotification(
-                `⚠️ ${provider.name} IP is blacklisted. Trying alternative providers...`,
-                "warning"
+                `⚠️ ${provider.name} blocked by mail server. Switching to backup...`,
+                "warning",
               );
             }
-            
+
             continue; // Try next provider
           }
         }
-        
+
         // Success! Use this provider for next requests
-        this.currentProviderIndex = providerIndex;
-        console.log(`✅ SMTP verification succeeded using ${provider.name}`);
-        
+        const providerIndex = this.smtpProviders.findIndex(
+          (p) => p.name === provider.name,
+        );
+        if (providerIndex !== -1) {
+          this.currentProviderIndex = providerIndex;
+        }
+
+        console.log(
+          `✅ SMTP verification succeeded using ${provider.name}${health ? ` (IP: ${health.ip})` : ""}`,
+        );
+
         // Add provider info to result
         data.verificationProvider = provider.name;
+        if (health) {
+          data.providerIP = health.ip;
+        }
         return data;
-        
       } catch (error) {
         console.warn(`${provider.name} failed:`, error.message);
         continue; // Try next provider
       }
     }
-    
+
     // All providers failed
-    console.error('❌ All SMTP providers failed or are blocked');
-    
+    console.error("❌ All SMTP providers failed or are blocked");
+
     UI.showNotification(
-      '⚠️ SMTP verification unavailable. All providers are blocked or offline. Try again later.',
-      'warning'
+      "⚠️ SMTP verification unavailable. All providers are blocked or offline. Try again later.",
+      "warning",
     );
-    
-    return { 
-      error: true, 
+
+    return {
+      error: true,
       exists: "unknown",
       reason: "all_providers_unavailable",
-      message: "All verification providers are currently unavailable"
+      message: "All verification providers are currently unavailable",
     };
   },
 

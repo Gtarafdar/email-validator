@@ -102,10 +102,10 @@ async checkSMTP(email) {
   // Try each provider until one works
   for (let attempt = 0; attempt < SMTP_PROVIDERS.length; attempt++) {
     const provider = SMTP_PROVIDERS[(currentProviderIndex + attempt) % SMTP_PROVIDERS.length];
-    
+
     // Skip if we know it's blocked
     if (provider.blocked) continue;
-    
+
     try {
       const response = await fetch(`${provider.url}/api/smtp-verify`, {
         method: "POST",
@@ -114,32 +114,32 @@ async checkSMTP(email) {
       });
 
       if (!response.ok) continue;
-      
+
       const data = await response.json();
-      
+
       // Check if IP is blacklisted
-      if (data.reason === 'policy_block' && 
+      if (data.reason === 'policy_block' &&
           data.responseText?.toLowerCase().includes('spamhaus')) {
         console.warn(`${provider.name} IP is blacklisted, trying next provider...`);
         provider.blocked = true; // Mark as blocked
         continue; // Try next provider
       }
-      
+
       // Success! Use this provider for next requests
       currentProviderIndex = (currentProviderIndex + attempt) % SMTP_PROVIDERS.length;
       console.log(`✅ SMTP verification succeeded using ${provider.name}`);
       return data;
-      
+
     } catch (error) {
       console.warn(`${provider.name} failed:`, error.message);
       continue; // Try next provider
     }
   }
-  
+
   // All providers failed
   console.error('All SMTP providers are blocked or unavailable');
-  return { 
-    error: true, 
+  return {
+    error: true,
     exists: "unknown",
     reason: "all_providers_blocked",
     message: "All verification endpoints are currently blocked. Try again later."
@@ -153,27 +153,31 @@ IPs might get unblocked over time:
 
 ```javascript
 // Reset blocked status after 24 hours
-setInterval(() => {
-  SMTP_PROVIDERS.forEach(provider => {
-    if (provider.blocked) {
-      console.log(`♻️ Resetting blocked status for ${provider.name}`);
-      provider.blocked = false;
-    }
-  });
-}, 24 * 60 * 60 * 1000); // 24 hours
+setInterval(
+  () => {
+    SMTP_PROVIDERS.forEach((provider) => {
+      if (provider.blocked) {
+        console.log(`♻️ Resetting blocked status for ${provider.name}`);
+        provider.blocked = false;
+      }
+    });
+  },
+  24 * 60 * 60 * 1000,
+); // 24 hours
 ```
 
 ---
 
 ## 🎯 Why This Works
 
-| Provider | IP Address | Spamhaus Status | Cost |
-|----------|------------|-----------------|------|
-| **Render** | 103.54.41.207 | ❌ Blacklisted | Free |
+| Provider    | IP Address          | Spamhaus Status  | Cost |
+| ----------- | ------------------- | ---------------- | ---- |
+| **Render**  | 103.54.41.207       | ❌ Blacklisted   | Free |
 | **Railway** | Dynamic (different) | ✅ Usually clean | Free |
-| **Fly.io** | Dynamic (different) | ✅ Usually clean | Free |
+| **Fly.io**  | Dynamic (different) | ✅ Usually clean | Free |
 
 **Statistics:**
+
 - If 1 provider is blocked → 66% success rate (2 working)
 - If 2 providers are blocked → 33% success rate (1 working)
 - Probability all 3 are blocked → ~5% (very low)
@@ -185,6 +189,7 @@ setInterval(() => {
 ## 🚀 Deployment Commands
 
 ### Railway
+
 ```bash
 npm install -g @railway/cli
 railway login
@@ -193,6 +198,7 @@ railway up
 ```
 
 ### Fly.io
+
 ```bash
 curl -L https://fly.io/install.sh | sh
 fly auth login
@@ -200,6 +206,7 @@ fly launch
 ```
 
 ### Glitch.com (No CLI needed)
+
 1. Go to https://glitch.com
 2. Click "New Project" → "Import from GitHub"
 3. Enter: `https://github.com/Gtarafdar/email-validator`
@@ -209,12 +216,12 @@ fly launch
 
 ## 📊 Cost Comparison
 
-| Solution | Setup Time | Monthly Cost | Effectiveness |
-|----------|-----------|--------------|---------------|
-| **Multi-Provider Rotation** | 2 hours | **$0** | 95% uptime |
-| SOCKS5 Proxy | 2 hours | $20-75 | 99% uptime |
-| ZeroBounce API | 3 hours | $0.008/email | 100% uptime |
-| Dedicated IP Pool | 1 week | $50-100 | 99.9% uptime |
+| Solution                    | Setup Time | Monthly Cost | Effectiveness |
+| --------------------------- | ---------- | ------------ | ------------- |
+| **Multi-Provider Rotation** | 2 hours    | **$0**       | 95% uptime    |
+| SOCKS5 Proxy                | 2 hours    | $20-75       | 99% uptime    |
+| ZeroBounce API              | 3 hours    | $0.008/email | 100% uptime   |
+| Dedicated IP Pool           | 1 week     | $50-100      | 99.9% uptime  |
 
 **Winner:** Multi-Provider Rotation (FREE + Good enough!)
 
@@ -258,7 +265,7 @@ name: Deploy to Multiple Providers
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy-railway:
@@ -291,6 +298,7 @@ Now every git push deploys to ALL providers automatically!
 ## 🎯 Expected Results
 
 **Before (Single Provider):**
+
 ```
 adrian.bedford@kineo.com
 ❌ IP Blacklisted - Cannot verify
@@ -298,6 +306,7 @@ Success rate: 0%
 ```
 
 **After (Multi-Provider):**
+
 ```
 adrian.bedford@kineo.com
 ✅ Trying Render... ❌ Blacklisted
@@ -313,6 +322,7 @@ Success rate: 95%+
 **Misunderstanding:** I should have started with free solutions!
 
 **Why I mentioned paid:**
+
 - Professional/production use cases
 - 99.9% uptime guarantees
 - Better for businesses
@@ -325,6 +335,7 @@ Success rate: 95%+
 ## 🚀 Action Plan
 
 **Option A: Fully Free (Recommended for MVP)**
+
 1. Deploy to Railway + Fly.io (2 hours)
 2. Add rotation logic (30 min)
 3. Test and launch
@@ -332,12 +343,14 @@ Success rate: 95%+
 5. Success rate: ~95%
 
 **Option B: Hybrid (If budget allows)**
+
 1. Use free rotation for most emails
 2. Add ZeroBounce API for critical verifications
 3. Cost: ~$16 for 2,000 critical emails
 4. Success rate: 99.9%
 
 **Option C: Premium (For scale)**
+
 1. SOCKS5 proxy with clean IPs
 2. Cost: $20-75/month
 3. Success rate: 99.9%

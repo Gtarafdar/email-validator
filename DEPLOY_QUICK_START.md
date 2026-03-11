@@ -1,9 +1,11 @@
 # 🚀 Quick Start: Deploy to Multiple FREE Hosts (5 Minutes!)
 
 ## Problem
+
 Render's IP is blacklisted → SMTP verification fails
 
 ## Solution
+
 Deploy same app to Railway + Fly.io → Automatically use whichever IP works!
 
 **Cost:** $0 (100% FREE)
@@ -15,23 +17,28 @@ Deploy same app to Railway + Fly.io → Automatically use whichever IP works!
 ## Step 1: Deploy to Railway (2 minutes)
 
 ### A. Create Account
+
 1. Go to https://railway.app
 2. Click "Start a New Project"
 3. Sign in with GitHub
 
 ### B. Deploy Project
+
 1. Click "Deploy from GitHub repo"
 2. Select `Gtarafdar/email-validator`
 3. Click "Deploy Now"
 4. Wait 2-3 minutes for deployment
 
 ### C. Get Your URL
+
 ```
 Your Railway URL: https://email-validator-production-XXXX.up.railway.app
 ```
+
 Copy this URL!
 
 ### D. Set Environment Variable
+
 1. Click "Variables" tab
 2. Add variable:
    - Name: `API_KEY`
@@ -45,41 +52,50 @@ Copy this URL!
 ### A. Install Fly CLI
 
 **Mac/Linux:**
+
 ```bash
 curl -L https://fly.io/install.sh | sh
 ```
 
 **Windows:**
+
 ```powershell
 pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"
 ```
 
 ### B. Login
+
 ```bash
 fly auth login
 ```
+
 (Opens browser to sign in)
 
 ### C. Deploy
+
 ```bash
 cd "/Users/gtarafdar/Downloads/Valid Email Checker"
 fly launch --name email-validator-backup --region iad
 ```
 
 When prompted:
+
 - Would you like to set up a Postgresql database? → **No**
 - Would you like to set up an Upstash Redis database? → **No**
 - Would you like to deploy now? → **Yes**
 
 ### D. Set Environment Variable
+
 ```bash
 fly secrets set API_KEY=your-secret-api-key-here
 ```
 
 ### E. Get Your URL
+
 ```
 Your Fly.io URL: https://email-validator-backup.fly.dev
 ```
+
 Copy this URL!
 
 ---
@@ -89,6 +105,7 @@ Copy this URL!
 ### Edit public/app.js
 
 Find this section (around line 486):
+
 ```javascript
 smtpProviders: [
   {
@@ -103,6 +120,7 @@ smtpProviders: [
 ```
 
 **Update to:**
+
 ```javascript
 smtpProviders: [
   {
@@ -127,6 +145,7 @@ smtpProviders: [
 ```
 
 **Save and commit:**
+
 ```bash
 git add public/app.js
 git commit -m "Add Railway and Fly.io as backup SMTP providers"
@@ -138,12 +157,14 @@ git push origin main
 ## ✅ Done! Test It
 
 ### Test SMTP Verification
+
 1. Open your validator: https://email-validator-pwk6.onrender.com
 2. Enter email: `adrian.bedford@kineo.com`
 3. Select **Deep** validation
 4. Click Validate
 
 ### Watch the Console (F12 → Console)
+
 ```
 🔍 Trying SMTP verification via render...
 🚫 render IP is blacklisted on Spamhaus. Marking as blocked and trying next provider...
@@ -187,6 +208,7 @@ git push origin main
 ## 📊 Expected Results
 
 ### Before Multi-Provider
+
 ```
 adrian.bedford@kineo.com
 ❌ SMTP blocked - IP blacklisted
@@ -194,6 +216,7 @@ Success rate: 0%
 ```
 
 ### After Multi-Provider
+
 ```
 adrian.bedford@kineo.com
 Trying render... ❌ Blacklisted
@@ -207,12 +230,14 @@ Success rate: 95%+
 ## 🔧 Troubleshooting
 
 ### Railway deployment fails
+
 ```bash
 # Check logs
 railway logs
 ```
 
 ### Fly.io deployment fails
+
 ```bash
 # Check status
 fly status
@@ -222,6 +247,7 @@ fly logs
 ```
 
 ### Still getting errors
+
 1. Check API_KEY is set on all platforms
 2. Make sure all URLs are correct in app.js
 3. Check browser console (F12) for errors
@@ -235,11 +261,11 @@ fly logs
 
 ## 💰 Cost Breakdown
 
-| Provider | Free Tier | Enough For |
-|----------|-----------|------------|
-| **Render** | 750 hours/month | ✅ 24/7 uptime |
+| Provider    | Free Tier       | Enough For     |
+| ----------- | --------------- | -------------- |
+| **Render**  | 750 hours/month | ✅ 24/7 uptime |
 | **Railway** | 500 hours/month | ✅ 24/7 uptime |
-| **Fly.io** | 3 VMs free | ✅ 24/7 uptime |
+| **Fly.io**  | 3 VMs free      | ✅ 24/7 uptime |
 
 **Total monthly cost:** $0 💰
 
@@ -252,6 +278,7 @@ fly logs
 ## 🎉 Bonus: Add More Providers
 
 ### Glitch.com (No CLI needed!)
+
 1. Go to https://glitch.com
 2. Click "New Project" → "Import from GitHub"
 3. Paste: `https://github.com/Gtarafdar/email-validator`
@@ -259,6 +286,7 @@ fly logs
 5. Add to `smtpProviders` array
 
 ### Replit.com
+
 1. Go to https://replit.com
 2. Click "Create Repl" → "Import from GitHub"
 3. Paste repo URL
@@ -273,6 +301,7 @@ fly logs
 ## 🚀 Result
 
 **You now have a professional email validator with:**
+
 - ✅ ZeroBounce-quality SMTP verification
 - ✅ Automatic failover when IPs blocked
 - ✅ 95%+ uptime with FREE infrastructure
