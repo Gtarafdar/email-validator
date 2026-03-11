@@ -1095,9 +1095,13 @@ const Validator = {
   },
 
   recommend(score) {
+    // Note: Score capped at 85 without SMTP verification (85-100 reserved for confirmed mailboxes)
+    // 80-85: Likely deliverable (DNS passed, but mailbox not verified)
+    // 60-79: Review (some concerns - missing auth, SMTP blocked, configuration issues)
+    // 0-59: Suppress (major issues - no MX, disposable, spam trap, etc.)
     if (score >= 80) return "likely_deliverable"; // High confidence: 80-85 (DNS only)
-    if (score >= 60) return "review"; // Medium confidence: 60-79
-    return "suppress"; // Low confidence: 0-59
+    if (score >= 60) return "review"; // Medium confidence: 60-79 (uncertainty or minor issues)
+    return "suppress"; // Low confidence: 0-59 (major red flags)
   },
 
   getConfidenceLevel(confidence) {
@@ -1513,12 +1517,16 @@ const Validator = {
           result.score -= 30; // Penalty for non-existent mailbox
         } else if (smtpResult.exists === "unknown") {
           result.allWarnings.push(
-            "⚠️ SMTP verification inconclusive (server blocked or catch-all)",
+            "⚠️ SMTP verification inconclusive (server blocked or catch-all) - Cannot confirm mailbox exists. Recommend manual verification or test send.",
           );
+          // CRITICAL: Reduce score when we can't verify mailbox existence
+          // This prevents false confidence - score drops from 85 to 70 (likely_deliverable → review)
+          result.score -= 15;
         }
       } catch (e) {
         result.smtpVerified = false;
         result.mailboxExists = "unknown";
+        result.score -= 15; // Also reduce score on SMTP check failure
         console.warn("SMTP verification failed for", normalized, e);
       }
     }
@@ -1532,7 +1540,7 @@ const Validator = {
     // IMPORTANT: Add warning about SMTP verification limitation
     if (result.mxFound && !result.bounceCode && !result.smtpVerified) {
       result.allWarnings.push(
-        "⚠️ DNS checks passed, but mailbox existence NOT verified (no SMTP check). Use Deep validation for mailbox verification. Score of 80-85 means 'likely deliverable' not 'guaranteed'.",
+        "ℹ️ Mailbox existence NOT verified (DNS checks only). For corporate emails, the mailbox may not exist even if DNS is valid. Use Deep validation + manually verify critical emails.",
       );
     }
 

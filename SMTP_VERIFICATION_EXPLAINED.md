@@ -9,6 +9,7 @@ SMTP (Simple Mail Transfer Protocol) verification attempts to verify if a mailbo
 ### It's NOT a Render.com Issue
 
 SMTP blocking has **nothing to do with Render** or where your validator is hosted. This would happen on:
+
 - Render.com ✓
 - AWS ✓
 - Google Cloud ✓
@@ -32,6 +33,7 @@ Many mail servers **intentionally block** SMTP verification attempts because:
 - **Small business servers** - ~40-50% block rate
 
 Only **free email providers** usually allow it:
+
 - Gmail.com (consumer) - Usually works
 - Yahoo.com - Usually works
 - Hotmail.com (consumer) - Usually works
@@ -41,6 +43,7 @@ Only **free email providers** usually allow it:
 ### Option 1: Trust MX Records (Recommended)
 
 If an email has:
+
 - ✅ Valid MX records
 - ✅ SPF/DKIM/DMARC configured
 - ✅ Domain age > 6 months
@@ -49,6 +52,7 @@ If an email has:
 **It's very likely deliverable** even if SMTP verification is blocked.
 
 **Your example:**
+
 ```
 riyad@bonfiremedia.co.za
 - MX Records: ✓ (Google Workspace)
@@ -62,6 +66,7 @@ riyad@bonfiremedia.co.za
 ### Option 2: Use Quick/Standard Validation
 
 Instead of Deep validation (which includes SMTP), use:
+
 - **Quick Validation** - Syntax + basic checks only
 - **Standard Validation** - Syntax + DNS/MX + Auth records
 
@@ -70,6 +75,7 @@ These are **faster, less invasive, and more reliable** because they don't trigge
 ### Option 3: Accept the Risk
 
 For critical emails, you can:
+
 1. Validate with Standard level (DNS/MX only)
 2. Send a **double opt-in confirmation email**
 3. Let the recipient confirm their email address
@@ -81,6 +87,7 @@ This is the **gold standard** for email verification and what major platforms (M
 ### Why Use a Server at All?
 
 **You MUST use a server for:**
+
 - **DNS/MX lookups** - Cannot be done from browser (CORS restrictions)
 - **WHOIS queries** - Domain age checking requires backend
 - **Website checks** - HTTP requests blocked by browser CORS
@@ -98,6 +105,7 @@ This is the **gold standard** for email verification and what major platforms (M
 ### No Server Alternative:
 
 If you want 100% client-side (no server):
+
 - ❌ No DNS/MX lookups
 - ❌ No WHOIS/domain age
 - ❌ No website checks
@@ -156,12 +164,13 @@ This is called **SMTP catch-all behavior** and makes verification useless.
 ### For Your Use Case:
 
 **bonfiremedia.co.za email addresses:**
+
 - ✅ Valid domain with Google Workspace
 - ✅ Proper DNS configuration
 - ✅ SPF/DKIM/DMARC setup
 - ⚠️ SMTP blocked (normal for corporate domains)
 
-**Recommendation:** 
+**Recommendation:**
 Trust the 85/100 score and mark as "Likely Deliverable". The SMTP block is **not a problem** - it's expected behavior for professional email infrastructure.
 
 ### Best Practice:
