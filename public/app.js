@@ -2594,7 +2594,7 @@ const UI = {
 
     if (results.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="11" style="text-align:center;">No results</td></tr>';
+        '<tr><td colspan="10" style="text-align:center;">No results</td></tr>';
       this.renderPagination(0);
       return;
     }
@@ -2623,7 +2623,6 @@ const UI = {
         <td>${warningsHtml}${this.escapeHtml(result.email)}</td>
         <td><span class="badge badge-${this.getStatusClass(result.status)}">${result.status}</span></td>
         <td><span class="score score-${this.getScoreClass(result.score)}">${result.score}</span></td>
-        <td><span class="badge badge-${result.recommendation}">${this.formatRecommendation(result.recommendation)}</span></td>
         <td>${this.renderDomainInfo(result)}</td>
         <td>${this.escapeHtml(result.provider)}</td>
         <td>${result.mxFound ? "✓" : "✗"}</td>
@@ -2925,7 +2924,7 @@ const UI = {
         html += `<br><small style="color: #ef4444; font-weight: 600;">❌ Mailbox not found</small>`;
         html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: No inbox</small>`;
       } else if (result.mailboxExists === "unknown") {
-        html += `<br><small style="color: #f59e0b; font-weight: 500;">⚠️ SMTP inconclusive</small>`;
+        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Many mail servers block SMTP verification to prevent abuse. This is normal and not specific to Render. Consider the email deliverable if MX records exist.">⚠️ SMTP inconclusive</small>`;
         html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Server blocked check</small>`;
       }
     }

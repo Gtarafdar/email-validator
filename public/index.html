@@ -394,9 +394,7 @@ jane@company.com,Jane Smith,</pre
           <div class="settings-section">
             <h3>🔐 API Key Configuration</h3>
             <p>
-              This app requires an API key to communicate with the validation
-              server. Use the <strong>same key</strong> you set in Render's
-              environment variables.
+              This API key allows YOUR app to communicate with YOUR server. It prevents random people from using your Render server (which costs you money).
             </p>
             <div style="display: flex; gap: 12px; align-items: flex-end">
               <div style="flex: 1">
@@ -441,12 +439,11 @@ jane@company.com,Jane Smith,</pre
               <p style="margin: 0; font-size: 0.875rem">
                 <strong>🔑 Setup Instructions:</strong><br />
                 1. Go to Render Dashboard → Environment → Add Variable<br />
-                2. Set <code>API_KEY</code> = <code>your-secure-key-here</code
-                ><br />
+                2. Set Key: <code>API_KEY</code> (all caps!) Value: <code>your-secure-key-here</code><br />
                 3. Copy the SAME key and paste it above<br />
                 4. Click "Save API Key"<br /><br />
-                <strong>⚠️ Important:</strong> The API key must match in BOTH
-                places (Render + this app).
+                <strong>💡 Security Note:</strong> Anyone using your deployed app needs this key to make API calls. This is normal - the key protects YOUR server from unauthorized access. If compromised, just change it in Render.<br /><br />
+                <strong>🔒 What's Protected:</strong> Your Render server (prevents strangers from using your resources). Email addresses are NEVER stored regardless of API key.
               </p>
             </div>
           </div>
@@ -592,7 +589,6 @@ jane@company.com,Jane Smith,</pre
                 <th>Email</th>
                 <th>Status</th>
                 <th>Score</th>
-                <th>Action</th>
                 <th>Domain</th>
                 <th>Provider</th>
                 <th>MX</th>
@@ -604,7 +600,7 @@ jane@company.com,Jane Smith,</pre
             </thead>
             <tbody>
               <tr>
-                <td colspan="11" style="text-align: center; padding: 40px">
+                <td colspan="10" style="text-align: center; padding: 40px">
                   No results yet. Start validating emails above.
                 </td>
               </tr>
@@ -851,21 +847,25 @@ jane@company.com,Jane Smith,</pre
           <div class="guide-section">
             <h3>🔒 Privacy-First Architecture</h3>
             <p class="privacy-highlight">
-              <strong>Zero Storage Guarantee:</strong> We do NOT store your email addresses. 
-              All validation results stay in YOUR browser only.
+              <strong>Zero Storage Guarantee:</strong> We do NOT store your
+              email addresses. All validation results stay in YOUR browser only.
             </p>
             <ul class="guide-list">
               <li>
-                <strong>Quick/Standard Validation:</strong> Only domain names sent to server for DNS checks (MX, SPF, DKIM, DMARC)
+                <strong>Quick/Standard Validation:</strong> Only domain names
+                sent to server for DNS checks (MX, SPF, DKIM, DMARC)
               </li>
               <li>
-                <strong>Deep Validation (SMTP):</strong> Full email sent to verify mailbox exists, but NOT stored or logged
+                <strong>Deep Validation (SMTP):</strong> Full email sent to
+                verify mailbox exists, but NOT stored or logged
               </li>
               <li>
-                <strong>Processing:</strong> In-memory only (~1ms), then immediately discarded
+                <strong>Processing:</strong> In-memory only (~1ms), then
+                immediately discarded
               </li>
               <li>
-                <strong>No Database:</strong> Zero persistence = Zero data breach risk
+                <strong>No Database:</strong> Zero persistence = Zero data
+                breach risk
               </li>
             </ul>
           </div>
@@ -985,28 +985,45 @@ jane@company.com,Jane Smith,</pre
             <h3>🔐 Security Features</h3>
             <ul class="guide-list">
               <li>
-                <strong>DNS Endpoints:</strong> Only accept domain names (reject emails at server level)
+                <strong>DNS Endpoints:</strong> Only accept domain names (reject
+                emails at server level)
               </li>
               <li>
-                <strong>SMTP Endpoint:</strong> Requires full email (protocol necessity) but never logs or stores it
+                <strong>SMTP Endpoint:</strong> Requires full email (protocol
+                necessity) but never logs or stores it
               </li>
               <li>
-                <strong>Rate Limiting:</strong> 100 req/min general, 20 req/min SMTP (prevents abuse)
+                <strong>Rate Limiting:</strong> 100 req/min general, 20 req/min
+                SMTP (prevents abuse)
               </li>
               <li>
-                <strong>API Authentication:</strong> API key required for all server requests
+                <strong>API Authentication:</strong> API key required for all
+                server requests
               </li>
               <li>
-                <strong>CORS Protection:</strong> Server only accepts requests from configured origins
+                <strong>CORS Protection:</strong> Server only accepts requests
+                from configured origins
               </li>
               <li>
-                <strong>XSS Prevention:</strong> All user input sanitized before rendering
+                <strong>XSS Prevention:</strong> All user input sanitized before
+                rendering
               </li>
             </ul>
             <p class="privacy-highlight">
-              📄 <a href="/privacy-policy.html" target="_blank">Full Privacy Policy</a> • 
-              🔍 <a href="/PRIVACY_SECURITY_AUDIT.md" target="_blank">Security Audit</a> • 
-              💻 <a href="https://github.com/Gtarafdar/email-validator" target="_blank">Open Source</a>
+              📄
+              <a href="/privacy-policy.html" target="_blank"
+                >Full Privacy Policy</a
+              >
+              • 🔍
+              <a href="/PRIVACY_SECURITY_AUDIT.md" target="_blank"
+                >Security Audit</a
+              >
+              • 💻
+              <a
+                href="https://github.com/Gtarafdar/email-validator"
+                target="_blank"
+                >Open Source</a
+              >
             </p>
           </div>
 
@@ -1015,36 +1032,49 @@ jane@company.com,Jane Smith,</pre
             <p><strong>Quick/Standard Validation (Default):</strong></p>
             <div class="data-flow">
               <div class="data-flow-step">
-                <strong>1. Browser:</strong> Syntax, format, disposable check, role-based detection
+                <strong>1. Browser:</strong> Syntax, format, disposable check,
+                role-based detection
               </div>
               <div class="data-flow-step">
-                <strong>2. Extract Domain:</strong> user@<span style="color: #10b981">example.com</span> → example.com only
+                <strong>2. Extract Domain:</strong> user@<span
+                  style="color: #10b981"
+                  >example.com</span
+                >
+                → example.com only
               </div>
               <div class="data-flow-step">
-                <strong>3. Server:</strong> DNS lookup (MX, SPF, DKIM, DMARC) using domain only
+                <strong>3. Server:</strong> DNS lookup (MX, SPF, DKIM, DMARC)
+                using domain only
               </div>
               <div class="data-flow-step">
-                <strong>4. Response:</strong> DNS data returned, email NEVER sent to server
+                <strong>4. Response:</strong> DNS data returned, email NEVER
+                sent to server
               </div>
             </div>
-            <p style="margin-top: 20px;"><strong>Deep Validation with SMTP (Optional):</strong></p>
+            <p style="margin-top: 20px">
+              <strong>Deep Validation with SMTP (Optional):</strong>
+            </p>
             <div class="data-flow">
               <div class="data-flow-step">
                 <strong>1-4:</strong> Same as above (DNS checks)
               </div>
               <div class="data-flow-step">
-                <strong>5. SMTP Check:</strong> Full email sent to verify mailbox exists
+                <strong>5. SMTP Check:</strong> Full email sent to verify
+                mailbox exists
               </div>
               <div class="data-flow-step">
-                <strong>6. Verification:</strong> Server connects to mail server, checks if mailbox accepts mail
+                <strong>6. Verification:</strong> Server connects to mail
+                server, checks if mailbox accepts mail
               </div>
-              <div class="data-flow-step" style="color: #10b981;">
-                <strong>7. Discard:</strong> Email immediately discarded from memory (NOT logged or stored)
+              <div class="data-flow-step" style="color: #10b981">
+                <strong>7. Discard:</strong> Email immediately discarded from
+                memory (NOT logged or stored)
               </div>
             </div>
             <p class="privacy-highlight">
               ✅ DNS checks: Email address NEVER leaves your browser<br />
-              ✅ SMTP checks: Email used for verification only, then discarded<br />
+              ✅ SMTP checks: Email used for verification only, then
+              discarded<br />
               ✅ No database, no logging, no data retention
             </p>
           </div>
