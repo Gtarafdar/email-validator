@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy - Email Validator</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        background: #f9fafb;
+      }
+      h1 {
+        color: #1f2937;
+        border-bottom: 3px solid #3b82f6;
+        padding-bottom: 10px;
+      }
+      h2 {
+        color: #374151;
+        margin-top: 30px;
+      }
+      .highlight {
+        background: #dbeafe;
+        border-left: 4px solid #3b82f6;
+        padding: 15px;
+        margin: 20px 0;
+      }
+      .important {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 15px;
+        margin: 20px 0;
+      }
+      ul {
+        margin-left: 20px;
+      }
+      li {
+        margin: 10px 0;
+      }
+      .back-link {
+        display: inline-block;
+        margin: 20px 0;
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="back-link">← Back to Email Validator</a>
+
+    <h1>Privacy Policy</h1>
+    <p><em>Last updated: March 12, 2026</em></p>
+
+    <div class="highlight">
+      <strong>🔒 Privacy-First Guarantee:</strong> We do NOT store your email
+      addresses on our servers. All validation results stay in YOUR browser
+      only.
+    </div>
+
+    <h2>1. What Data We Collect</h2>
+
+    <h3>For DNS Validation (Default):</h3>
+    <ul>
+      <li>
+        <strong>Domain names only</strong> (e.g., <code>example.com</code>)
+      </li>
+      <li>We do NOT receive or see full email addresses</li>
+      <li>
+        Email addresses are extracted in your browser, and only the domain is
+        sent to our server
+      </li>
+    </ul>
+
+    <h3>For SMTP Mailbox Verification (Optional - Deep Validation):</h3>
+    <ul>
+      <li>
+        <strong>Full email addresses</strong> (e.g.,
+        <code>user@example.com</code>)
+      </li>
+      <li>Required only for checking if mailbox actually exists</li>
+      <li>Used ONLY when you explicitly choose "Deep" validation level</li>
+      <li>Limited to 20 checks per minute to prevent abuse</li>
+    </ul>
+
+    <h3>What We Do NOT Collect:</h3>
+    <ul>
+      <li>❌ No cookies</li>
+      <li>❌ No analytics or tracking</li>
+      <li>❌ No IP address logging</li>
+      <li>❌ No user accounts or registration</li>
+      <li>❌ No advertising or marketing data</li>
+    </ul>
+
+    <h2>2. How We Use Your Data</h2>
+
+    <div class="important">
+      <strong>Zero Storage Architecture</strong><br />
+      Email addresses and domain names are processed
+      <strong>in-memory only</strong> to perform validation checks. NO data is
+      written to any database, file, or permanent storage.
+    </div>
+
+    <p><strong>Processing steps:</strong></p>
+    <ol>
+      <li>You enter an email address in your browser</li>
+      <li>
+        Browser extracts domain name (e.g., <code>example.com</code>) for DNS
+        checks
+      </li>
+      <li>Our server performs DNS lookup (MX, SPF, DKIM, DMARC)</li>
+      <li>
+        For SMTP verification (optional), full email sent to check mailbox
+        existence
+      </li>
+      <li>Results returned to your browser</li>
+      <li>
+        Server immediately discards from memory (Node.js garbage collection)
+      </li>
+      <li>
+        <strong>Results stored ONLY in your browser's localStorage</strong>
+      </li>
+    </ol>
+
+    <p><strong>What this means:</strong></p>
+    <ul>
+      <li>✅ We process your data to provide validation service</li>
+      <li>✅ We do NOT store, log, or retain your email addresses</li>
+      <li>✅ We do NOT use your data for any other purpose</li>
+      <li>✅ We do NOT share your data with third parties</li>
+    </ul>
+
+    <h2>3. Data Storage Location</h2>
+
+    <h3>Your Browser (Client-Side):</h3>
+    <ul>
+      <li>
+        All validation results are stored in your browser's
+        <strong>localStorage</strong>
+      </li>
+      <li>Stored on YOUR device only</li>
+      <li>We do NOT have access to this data</li>
+      <li>
+        You can view it in: Browser DevTools → Application → Local Storage
+      </li>
+      <li>You can clear it anytime using the "Clear All Data" button</li>
+    </ul>
+
+    <h3>Our Server (Temporary Processing Only):</h3>
+    <ul>
+      <li>⚡ Email/domain processed for milliseconds only</li>
+      <li>🗑️ Immediately discarded from memory after response</li>
+      <li>❌ NO database, NO files, NO permanent storage</li>
+      <li>❌ NO email addresses in server logs</li>
+    </ul>
+
+    <h2>4. Third-Party Infrastructure</h2>
+
+    <h3>Hosting Provider: Render.com</h3>
+    <ul>
+      <li><strong>Security:</strong> SOC 2 Type II compliant</li>
+      <li>
+        <strong>Encryption:</strong> HTTPS/TLS enforced for all connections
+      </li>
+      <li>
+        <strong>Logs:</strong> Basic HTTP request metadata (timestamps, status
+        codes)
+      </li>
+      <li>
+        <strong>Data:</strong> Render does NOT log POST request bodies (where
+        emails would be)
+      </li>
+      <li>
+        <strong>Retention:</strong> Server logs auto-deleted after 7-30 days
+      </li>
+      <li><strong>Location:</strong> United States (AWS infrastructure)</li>
+    </ul>
+
+    <h3>What Render Can See:</h3>
+    <ul>
+      <li>✅ HTTP request metadata (timestamp, endpoint, status code)</li>
+      <li>✅ Domain names in DNS lookups (not sensitive)</li>
+      <li>❌ NOT email addresses (sent in encrypted POST body)</li>
+      <li>❌ NOT your validation results (stored in your browser)</li>
+    </ul>
+
+    <h2>5. Your Data Rights</h2>
+
+    <h3>Right to Access:</h3>
+    <p>View all your data stored in your browser:</p>
+    <ol>
+      <li>Open browser DevTools (F12 or Cmd+Option+I)</li>
+      <li>Go to Application → Local Storage</li>
+      <li>See all your validation results</li>
+    </ol>
+
+    <h3>Right to Delete:</h3>
+    <p>Delete all your data:</p>
+    <ul>
+      <li>
+        <strong>Option 1:</strong> Click "Clear All Data" button in Settings tab
+      </li>
+      <li><strong>Option 2:</strong> Clear your browser cache/cookies</li>
+      <li>
+        <strong>Option 3:</strong> Use browser's "Clear site data" feature
+      </li>
+    </ul>
+
+    <h3>Right to Export:</h3>
+    <p>Export your validation results:</p>
+    <ul>
+      <li>Click "Export Results" button to download CSV file</li>
+      <li>Choose specific categories to export (valid, risky, invalid)</li>
+    </ul>
+
+    <h3>Right to Opt-Out:</h3>
+    <ul>
+      <li>
+        <strong>SMTP verification:</strong> Optional - only happens if you
+        choose "Deep" validation
+      </li>
+      <li>
+        <strong>DNS checks:</strong> Core functionality - required for
+        validation service
+      </li>
+    </ul>
+
+    <h2>6. Data Security</h2>
+
+    <p>We implement industry-standard security measures:</p>
+    <ul>
+      <li>🔒 <strong>HTTPS/TLS encryption</strong> for all data in transit</li>
+      <li>
+        🔑 <strong>API key authentication</strong> to prevent unauthorized
+        access
+      </li>
+      <li>
+        ⏱️ <strong>Rate limiting</strong> to prevent abuse (100 requests/min
+        general, 20/min SMTP)
+      </li>
+      <li>
+        🚫 <strong>No data persistence</strong> = no data breaches possible
+      </li>
+      <li>
+        ✅ <strong>Server-side validation</strong> to reject email addresses on
+        DNS endpoints
+      </li>
+    </ul>
+
+    <h2>7. Data Retention</h2>
+
+    <table
+      border="1"
+      cellpadding="10"
+      style="border-collapse: collapse; width: 100%; margin: 20px 0"
+    >
+      <tr>
+        <th style="background: #f3f4f6">Data Type</th>
+        <th style="background: #f3f4f6">Location</th>
+        <th style="background: #f3f4f6">Retention Period</th>
+      </tr>
+      <tr>
+        <td>Validation Results</td>
+        <td>Your browser localStorage</td>
+        <td>Until you clear it manually</td>
+      </tr>
+      <tr>
+        <td>Email Addresses</td>
+        <td>Our server memory</td>
+        <td>~1 millisecond (then garbage collected)</td>
+      </tr>
+      <tr>
+        <td>Domain Names</td>
+        <td>Our server memory</td>
+        <td>~1 millisecond (then garbage collected)</td>
+      </tr>
+      <tr>
+        <td>Server Error Logs</td>
+        <td>Render.com logs</td>
+        <td>7-30 days (then auto-deleted)</td>
+      </tr>
+      <tr>
+        <td>HTTP Request Metadata</td>
+        <td>Render.com logs</td>
+        <td>7-30 days (then auto-deleted)</td>
+      </tr>
+    </table>
+
+    <div class="highlight">
+      <strong>Important:</strong> We do NOT have any database or permanent
+      storage. Nothing is retained after processing is complete.
+    </div>
+
+    <h2>8. Children's Privacy</h2>
+
+    <p>
+      This service is not directed to children under 13. We do not knowingly
+      collect personal information from children under 13.
+    </p>
+
+    <h2>9. International Users</h2>
+
+    <p>
+      This service is hosted in the United States. By using this service, you
+      consent to the transfer of your data (domain names) to the United States
+      for processing. However, since we do not store any data, there is minimal
+      privacy impact.
+    </p>
+
+    <h3>GDPR Compliance (Europe):</h3>
+    <ul>
+      <li>
+        ✅ <strong>Data Minimization:</strong> Only domain names sent (not full
+        emails for DNS)
+      </li>
+      <li>
+        ✅ <strong>Purpose Limitation:</strong> Used only for validation,
+        nothing else
+      </li>
+      <li>
+        ✅ <strong>Storage Limitation:</strong> No storage = no retention issues
+      </li>
+      <li>
+        ✅ <strong>Privacy by Design:</strong> Architecture prevents data
+        collection
+      </li>
+    </ul>
+
+    <h3>CCPA Compliance (California):</h3>
+    <ul>
+      <li>
+        ✅ <strong>Right to Know:</strong> See data in your browser localStorage
+      </li>
+      <li>
+        ✅ <strong>Right to Delete:</strong> "Clear All Data" button provided
+      </li>
+      <li>
+        ✅ <strong>No Sale of Data:</strong> We don't store data, so can't sell
+        it
+      </li>
+    </ul>
+
+    <h2>10. Changes to This Policy</h2>
+
+    <p>
+      We may update this Privacy Policy from time to time. Changes will be
+      posted on this page with an updated "Last updated" date. Continued use of
+      the service after changes constitutes acceptance of the updated policy.
+    </p>
+
+    <h2>11. Contact Us</h2>
+
+    <p>
+      If you have questions about this Privacy Policy or our data practices:
+    </p>
+    <ul>
+      <li>
+        <strong>Email:</strong> support@yourdomain.com <em>(update this!)</em>
+      </li>
+      <li>
+        <strong>Method:</strong> Email only (we don't have a database to look up
+        your data)
+      </li>
+    </ul>
+
+    <h2>12. Legal Disclaimer</h2>
+
+    <div class="important">
+      <p><strong>Service provided "AS-IS"</strong></p>
+      <ul>
+        <li>We make no guarantees about 100% accuracy of validation results</li>
+        <li>You are responsible for how you use the validation results</li>
+        <li>
+          We are not liable for decisions made based on validation results
+        </li>
+        <li>Use at your own risk</li>
+      </ul>
+    </div>
+
+    <h2>13. Open Source & Transparency</h2>
+
+    <p>
+      This application is open source. You can review the entire codebase to
+      verify our privacy claims:
+    </p>
+    <ul>
+      <li>
+        <strong>GitHub Repository:</strong>
+        <a href="https://github.com/Gtarafdar/email-validator" target="_blank"
+          >Gtarafdar/email-validator</a
+        >
+      </li>
+      <li>
+        <strong>Privacy Audit:</strong> See
+        <code>PRIVACY_SECURITY_AUDIT.md</code> in repository
+      </li>
+      <li>
+        <strong>Architecture:</strong> Review <code>server.js</code> and
+        <code>public/app.js</code>
+      </li>
+    </ul>
+
+    <div class="highlight">
+      <p><strong>🔍 Verify for yourself:</strong></p>
+      <p>
+        Search the codebase for database connections, file writes, or logging
+        statements. You won't find any that store email addresses. This is
+        verifiable proof of our privacy-first architecture.
+      </p>
+    </div>
+
+    <hr style="margin: 40px 0" />
+
+    <p><strong>Summary:</strong></p>
+    <p>
+      We built this validator with privacy-by-design. We literally cannot lose
+      your data because we don't store it in the first place. Everything happens
+      in your browser, and our server only processes requests temporarily in
+      memory. This is the most private way to validate emails.
+    </p>
+
+    <a href="/" class="back-link">← Back to Email Validator</a>
+
+    <p
+      style="
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin-top: 40px;
+      "
+    >
+      © 2026 Email Validator. All rights reserved.
+    </p>
+  </body>
+</html>

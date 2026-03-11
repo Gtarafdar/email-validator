@@ -1123,6 +1123,14 @@ const Validator = {
         body: JSON.stringify({ domain }),
       });
 
+      if (response.status === 401) {
+        UI.showNotification(
+          "❌ API Key Invalid! Go to Settings tab and configure your API key.",
+          "error",
+        );
+        throw new Error("Authentication failed - check API key in Settings");
+      }
+
       if (!response.ok) {
         return {
           error: true,
@@ -1135,7 +1143,10 @@ const Validator = {
       }
 
       return await response.json();
-    } catch {
+    } catch (error) {
+      if (error.message.includes("Authentication failed")) {
+        throw error; // Re-throw auth errors
+      }
       return {
         error: true,
         mx: [],
@@ -1155,6 +1166,14 @@ const Validator = {
         body: JSON.stringify({ domain }),
       });
 
+      if (response.status === 401) {
+        UI.showNotification(
+          "❌ API Key Invalid! Go to Settings tab and configure your API key.",
+          "error",
+        );
+        throw new Error("Authentication failed - check API key in Settings");
+      }
+
       if (!response.ok) {
         return { error: true, domainAge: null };
       }
@@ -1162,6 +1181,9 @@ const Validator = {
       const data = await response.json();
       return data;
     } catch (error) {
+      if (error.message.includes("Authentication failed")) {
+        throw error;
+      }
       console.warn("WHOIS lookup failed:", error);
       return { error: true, domainAge: null };
     }
@@ -1175,6 +1197,14 @@ const Validator = {
         body: JSON.stringify({ domain }),
       });
 
+      if (response.status === 401) {
+        UI.showNotification(
+          "❌ API Key Invalid! Go to Settings tab and configure your API key.",
+          "error",
+        );
+        throw new Error("Authentication failed - check API key in Settings");
+      }
+
       if (!response.ok) {
         return { error: true, websiteActive: false };
       }
@@ -1182,6 +1212,9 @@ const Validator = {
       const data = await response.json();
       return data;
     } catch (error) {
+      if (error.message.includes("Authentication failed")) {
+        throw error;
+      }
       console.warn("Website check failed:", error);
       return { error: true, websiteActive: false };
     }
@@ -1194,6 +1227,14 @@ const Validator = {
         headers: ApiConfig.getHeaders(),
         body: JSON.stringify({ email }),
       });
+
+      if (response.status === 401) {
+        UI.showNotification(
+          "❌ API Key Invalid! Go to Settings tab and configure your API key.",
+          "error",
+        );
+        throw new Error("Authentication failed - check API key in Settings");
+      }
 
       if (!response.ok) {
         return { error: true, exists: "unknown" };
@@ -2305,8 +2346,8 @@ const UI = {
 
         // Get selected validation level
         const validationLevel =
-          document.getElementById("bulkValidationLevel")?.value || 
-          document.getElementById("validationLevel")?.value || 
+          document.getElementById("bulkValidationLevel")?.value ||
+          document.getElementById("validationLevel")?.value ||
           "standard";
 
         // Validate email
@@ -2381,8 +2422,8 @@ const UI = {
       const results = [];
       const total = emails.length;
       const validationLevel =
-        document.getElementById("csvValidationLevel")?.value || 
-        document.getElementById("validationLevel")?.value || 
+        document.getElementById("csvValidationLevel")?.value ||
+        document.getElementById("validationLevel")?.value ||
         "standard";
 
       // Show progress for large CSVs

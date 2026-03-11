@@ -80,6 +80,52 @@
       </div>
     </header>
 
+    <!-- Privacy Disclosure Banner -->
+    <div
+      class="privacy-banner"
+      style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 0;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        class="container"
+        style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        "
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          style="flex-shrink: 0"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M9 12l2 2 4-4" opacity="0.7"></path>
+        </svg>
+        <p style="margin: 0; font-size: 15px; font-weight: 500">
+          <strong>🔒 Privacy Guarantee:</strong> We do NOT store your email
+          addresses on our servers. All validation results stay in YOUR browser
+          only. DNS checks use domains only (not full emails).
+          <a
+            href="/privacy-policy.html"
+            style="color: #fbbf24; text-decoration: underline; margin-left: 8px"
+            >Read Privacy Policy</a
+          >
+        </p>
+      </div>
+    </div>
+
     <div class="container">
       <!-- Stats Dashboard -->
       <section class="card stats-grid">
@@ -173,19 +219,30 @@
       <div id="tab-bulk" class="tab-content">
         <section class="card">
           <h2>Bulk Email Validation</h2>
-          
+
           <!-- Validation Level Selector for Bulk -->
-          <div class="validation-level-selector" style="margin-bottom: 20px;">
+          <div class="validation-level-selector" style="margin-bottom: 20px">
             <label for="bulkValidationLevel">Validation Level:</label>
             <select id="bulkValidationLevel" class="select">
               <option value="quick">⚡ Quick (Syntax + Basic)</option>
               <option value="standard" selected>
                 🔍 Standard (+ DNS + Auth)
               </option>
-              <option value="deep">🔬 Deep (+ SMTP Mailbox Verification)</option>
+              <option value="deep">
+                🔬 Deep (+ SMTP Mailbox Verification)
+              </option>
             </select>
-            <span class="validation-hint" style="display: block; margin-top: 8px; font-size: 0.875rem; color: #6b7280;">
-              💡 <strong>Deep validation</strong> checks real mailboxes via SMTP (slower, 20/min limit)
+            <span
+              class="validation-hint"
+              style="
+                display: block;
+                margin-top: 8px;
+                font-size: 0.875rem;
+                color: #6b7280;
+              "
+            >
+              💡 <strong>Deep validation</strong> checks real mailboxes via SMTP
+              (slower, 20/min limit)
             </span>
           </div>
 
@@ -251,17 +308,28 @@
           </p>
 
           <!-- Validation Level Selector for CSV -->
-          <div class="validation-level-selector" style="margin-bottom: 24px;">
+          <div class="validation-level-selector" style="margin-bottom: 24px">
             <label for="csvValidationLevel">Validation Level:</label>
             <select id="csvValidationLevel" class="select">
               <option value="quick">⚡ Quick (Syntax + Basic)</option>
               <option value="standard" selected>
                 🔍 Standard (+ DNS + Auth)
               </option>
-              <option value="deep">🔬 Deep (+ SMTP Mailbox Verification)</option>
+              <option value="deep">
+                🔬 Deep (+ SMTP Mailbox Verification)
+              </option>
             </select>
-            <span class="validation-hint" style="display: block; margin-top: 8px; font-size: 0.875rem; color: #6b7280;">
-              💡 <strong>Deep validation</strong> includes real mailbox checking via SMTP (20 checks/min limit)
+            <span
+              class="validation-hint"
+              style="
+                display: block;
+                margin-top: 8px;
+                font-size: 0.875rem;
+                color: #6b7280;
+              "
+            >
+              💡 <strong>Deep validation</strong> includes real mailbox checking
+              via SMTP (20 checks/min limit)
             </span>
           </div>
 
@@ -372,8 +440,8 @@ jane@company.com,Jane Smith,</pre
           <div class="settings-section">
             <h3>🔐 API Key Configuration</h3>
             <p>
-              This app requires an API key for server deployment. Enter your API
-              key below.
+              This app requires an API key to communicate with the validation server.
+              Use the <strong>same key</strong> you set in Render's environment variables.
             </p>
             <div style="display: flex; gap: 12px; align-items: flex-end">
               <div style="flex: 1">
@@ -411,14 +479,17 @@ jane@company.com,Jane Smith,</pre
               class="info-box"
               style="
                 margin-top: 16px;
-                background: #fef3c7;
-                border-left: 4px solid #f59e0b;
+                background: #dbeafe;
+                border-left: 4px solid #3b82f6;
               "
             >
               <p style="margin: 0; font-size: 0.875rem">
-                <strong>🚀 Deploy to Render.com:</strong> Get your API key from
-                your Render dashboard after deployment. See
-                <code>README_DEPLOYMENT.md</code> for instructions.
+                <strong>🔑 Setup Instructions:</strong><br>
+                1. Go to Render Dashboard → Environment → Add Variable<br>
+                2. Set <code>API_KEY</code> = <code>your-secure-key-here</code><br>
+                3. Copy the SAME key and paste it above<br>
+                4. Click "Save API Key"<br><br>
+                <strong>⚠️ Important:</strong> The API key must match in BOTH places (Render + this app).
               </p>
             </div>
           </div>
@@ -1026,7 +1097,17 @@ jane@company.com,Jane Smith,</pre
           <strong>Privacy-First Email Validator</strong> • All data stored
           locally in your browser • No tracking • No external API calls except
           DNS lookups •
-          <a href="https://github.com" target="_blank">Open Source</a>
+          <a href="https://github.com/Gtarafdar/email-validator" target="_blank"
+            >Open Source</a
+          >
+          • <a href="/privacy-policy.html">Privacy Policy</a> •
+          <a href="/PRIVACY_SECURITY_AUDIT.md" target="_blank"
+            >Security Audit</a
+          >
+        </p>
+        <p style="font-size: 13px; color: #6b7280; margin-top: 8px">
+          🔒 Zero Storage Architecture • We don't store data = We can't lose
+          data
         </p>
       </div>
     </footer>
