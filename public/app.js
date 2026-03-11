@@ -481,6 +481,36 @@ const ApiConfig = {
 // ============================================
 
 const Validator = {
+  // SMTP Provider Configuration - Multi-provider rotation for FREE IP diversity
+  // Add more providers here as you deploy to them (Railway, Fly.io, etc.)
+  smtpProviders: [
+    {
+      name: 'render',
+      url: window.location.origin, // Current host (Render)
+      blocked: false,
+      lastChecked: null
+    },
+    // Add Railway deployment: { name: 'railway', url: 'https://YOUR_PROJECT.up.railway.app', blocked: false, lastChecked: null },
+    // Add Fly.io deployment: { name: 'fly', url: 'https://YOUR_PROJECT.fly.dev', blocked: false, lastChecked: null },
+  ],
+  currentProviderIndex: 0,
+
+  // Reset blocked providers after 24 hours
+  resetBlockedProviders() {
+    const now = Date.now();
+    const RESET_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+    
+    this.smtpProviders.forEach(provider => {
+      if (provider.blocked && provider.lastChecked) {
+        if (now - provider.lastChecked > RESET_INTERVAL) {
+          console.log(`♻️ Resetting blocked status for ${provider.name}`);
+          provider.blocked = false;
+          provider.lastChecked = null;
+        }
+      }
+    });
+  },
+
   normalizeEmail(email) {
     return String(email || "")
       .trim()
@@ -1225,31 +1255,107 @@ const Validator = {
   },
 
   async checkSMTP(email) {
-    try {
-      const response = await fetch("/api/smtp-verify", {
-        method: "POST",
-        headers: ApiConfig.getHeaders(),
-        body: JSON.stringify({ email }),
+    // Reset blocked providers if 24 hours passed
+    this.resetBlockedProviders();
+    
+    // Try each provider until one works
+    const availableProviders = this.smtpProviders.filter(p => !p.blocked);
+    
+    if (availableProviders.length === 0) {
+      console.warn('⚠️ All SMTP providers are blocked. Resetting all...');
+      // Reset all if all blocked
+      this.smtpProviders.forEach(p => {
+        p.blocked = false;
+        p.lastChecked = null;
       });
-
-      if (response.status === 401) {
-        UI.showNotification(
-          "❌ API Key Invalid! Go to Settings tab and configure your API key.",
-          "error",
-        );
-        throw new Error("Authentication failed - check API key in Settings");
-      }
-
-      if (!response.ok) {
-        return { error: true, exists: "unknown" };
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.warn("SMTP verification failed:", error);
-      return { error: true, exists: "unknown" };
     }
+    
+    // Try up to 3 providers
+    const maxAttempts = Math.min(3, this.smtpProviders.length);
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const providerIndex = (this.currentProviderIndex + attempt) % this.smtpProviders.length;
+      const provider = this.smtpProviders[providerIndex];
+      
+      // Skip if blocked
+      if (provider.blocked) continue;
+      
+      try {
+        console.log(`🔍 Trying SMTP verification via ${provider.name}...`);
+        
+        const response = await fetch(`${provider.url}/api/smtp-verify`, {
+          method: "POST",
+          headers: ApiConfig.getHeaders(),
+          body: JSON.stringify({ email }),
+        });
+
+        if (response.status === 401) {
+          UI.showNotification(
+            "❌ API Key Invalid! Go to Settings tab and configure your API key.",
+            "error",
+          );
+          throw new Error("Authentication failed - check API key in Settings");
+        }
+
+        if (!response.ok) {
+          console.warn(`${provider.name} returned error status ${response.status}`);
+          continue; // Try next provider
+        }
+
+        const data = await response.json();
+        
+        // Check if this provider's IP is blacklisted
+        if (data.reason === 'policy_block' && data.responseText) {
+          const isBlacklisted = 
+            data.responseText.toLowerCase().includes('spamhaus') ||
+            data.responseText.toLowerCase().includes('blacklist') ||
+            data.responseText.toLowerCase().includes('rbl');
+          
+          if (isBlacklisted) {
+            console.warn(`🚫 ${provider.name} IP is blacklisted on Spamhaus. Marking as blocked and trying next provider...`);
+            provider.blocked = true;
+            provider.lastChecked = Date.now();
+            
+            // Show notification only on first detection
+            if (attempt === 0) {
+              UI.showNotification(
+                `⚠️ ${provider.name} IP is blacklisted. Trying alternative providers...`,
+                "warning"
+              );
+            }
+            
+            continue; // Try next provider
+          }
+        }
+        
+        // Success! Use this provider for next requests
+        this.currentProviderIndex = providerIndex;
+        console.log(`✅ SMTP verification succeeded using ${provider.name}`);
+        
+        // Add provider info to result
+        data.verificationProvider = provider.name;
+        return data;
+        
+      } catch (error) {
+        console.warn(`${provider.name} failed:`, error.message);
+        continue; // Try next provider
+      }
+    }
+    
+    // All providers failed
+    console.error('❌ All SMTP providers failed or are blocked');
+    
+    UI.showNotification(
+      '⚠️ SMTP verification unavailable. All providers are blocked or offline. Try again later.',
+      'warning'
+    );
+    
+    return { 
+      error: true, 
+      exists: "unknown",
+      reason: "all_providers_unavailable",
+      message: "All verification providers are currently unavailable"
+    };
   },
 
   async validate(
@@ -1537,23 +1643,23 @@ const Validator = {
           // Blocked by server policy (spam filters, IP blacklist)
           // Check if responseText mentions blacklist
           const responseText = smtpResult.responseText || "";
-          const isIPBlacklisted = 
+          const isIPBlacklisted =
             responseText.toLowerCase().includes("spamhaus") ||
             responseText.toLowerCase().includes("blacklist") ||
             responseText.toLowerCase().includes("blocked") ||
             responseText.toLowerCase().includes("rbl");
-          
+
           if (isIPBlacklisted) {
             result.allWarnings.push(
               "🚫 IP BLACKLIST DETECTED - Server IP is blacklisted (Spamhaus/RBL). This prevents accurate verification. Tried " +
-              (smtpResult.mxTried?.length || 1) +
-              " MX server(s). Solutions: Use dedicated IPs, proxy service, or ZeroBounce API integration.",
+                (smtpResult.mxTried?.length || 1) +
+                " MX server(s). Solutions: Use dedicated IPs, proxy service, or ZeroBounce API integration.",
             );
           } else {
             result.allWarnings.push(
               "⚠️ SMTP verification blocked by server policy - common for corporate email. Cannot confirm mailbox exists. Tried " +
-              (smtpResult.mxTried?.length || 1) +
-              " MX server(s).",
+                (smtpResult.mxTried?.length || 1) +
+                " MX server(s).",
             );
           }
           result.score -= 15; // Reduce confidence
@@ -2996,11 +3102,11 @@ const UI = {
         // Blocked by server policy - check for IP blacklist
         const mxCount = result.smtpMxTried?.length || 1;
         const responseText = result.smtpResponseText || "";
-        const isIPBlacklisted = 
+        const isIPBlacklisted =
           responseText.toLowerCase().includes("spamhaus") ||
           responseText.toLowerCase().includes("blacklist") ||
           responseText.toLowerCase().includes("rbl");
-        
+
         if (isIPBlacklisted) {
           html += `<br><small style="color: #ef4444; font-weight: 600;" data-tooltip="Server IP is blacklisted on Spamhaus/RBL. This is a Render infrastructure issue. Tried ${mxCount} MX server(s). Solutions: Use dedicated IPs, SOCKS5 proxy, or integrate ZeroBounce API for critical verifications.">🚫 IP Blacklisted</small>`;
           html += `<br><small style="color: #6b7280; font-size: 0.75rem;">${mxCount} MX - Spamhaus block</small>`;
