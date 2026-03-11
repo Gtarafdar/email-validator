@@ -12,11 +12,11 @@
 
 ### Test Case: alexandre@agenceverywell.fr
 
-| Service | Result | Details |
-|---------|--------|---------|
-| **ZeroBounce** | ❌ Invalid | `mailbox_not_found` |
-| **Old Validator** | ⚠️ Review (78 score) | SMTP inconclusive - couldn't verify |
-| **NEW Validator** | ❌ **Confirmed Invalid** | `exists: false` - High confidence |
+| Service           | Result                   | Details                             |
+| ----------------- | ------------------------ | ----------------------------------- |
+| **ZeroBounce**    | ❌ Invalid               | `mailbox_not_found`                 |
+| **Old Validator** | ⚠️ Review (78 score)     | SMTP inconclusive - couldn't verify |
+| **NEW Validator** | ❌ **Confirmed Invalid** | `exists: false` - High confidence   |
 
 **Success!** The new validator now gets the same definitive result as ZeroBounce.
 
@@ -25,33 +25,40 @@
 ## 🚀 What Was Improved
 
 ### 1. **Multiple MX Server Fallback**
+
 - **Before:** Only tried first MX server, gave up if blocked
 - **After:** Tries up to 3 MX servers with different strategies
 - **Impact:** Higher success rate, more persistent verification
 
 ### 2. **Catch-All Server Detection**
+
 - **Before:** Couldn't detect servers that accept all emails
 - **After:** Tests with random addresses to identify catch-all configuration
 - **Impact:** Reduces false positives from catch-all domains
 
 ### 3. **Better Error Message Parsing**
+
 - **Before:** Generic "unknown" status for all failures
 - **After:** Specific reasons: `mailbox_not_found`, `policy_block`, `temporary_error`, `catch_all`, `verification_disabled`
 - **Impact:** Users understand WHY verification failed
 
 ### 4. **Proper EHLO Hostname**
+
 - **Before:** Used target domain in EHLO (looks suspicious)
 - **After:** Uses validator's domain (`email-validator-pwk6.onrender.com`)
 - **Impact:** Better acceptance by mail servers, looks more legitimate
 
 ### 5. **Multiple Verification Strategies**
+
 - **Strategy 1:** Validator domain (most legitimate)
 - **Strategy 2:** Target domain (some servers prefer this)
 - **Strategy 3:** Generic verification domain (fallback)
 - **Impact:** Tries different approaches if first one fails
 
 ### 6. **Detailed Response Information**
+
 New fields provided:
+
 - `confidence`: `"high"` or `"low"` - how confident the result is
 - `reason`: Why verification succeeded/failed
 - `catchAll`: Boolean - is this a catch-all server?
@@ -64,6 +71,7 @@ New fields provided:
 ## 🔍 How It Works Now
 
 ### Step 1: Try Primary MX Server
+
 ```
 Connecting to aspmx.l.google.com (priority 1)...
 Strategy 1: EHLO email-validator-pwk6.onrender.com
@@ -72,6 +80,7 @@ RCPT TO: <alexandre@agenceverywell.fr>
 ```
 
 ### Step 2: Analyze Response
+
 ```
 ← 550 5.2.1 DisabledUser
 ✓ Definitive answer: Mailbox does not exist
@@ -79,6 +88,7 @@ RCPT TO: <alexandre@agenceverywell.fr>
 ```
 
 ### Step 3: Classify Result
+
 ```javascript
 {
   "exists": false,              // Definitive: doesn't exist
@@ -94,11 +104,11 @@ RCPT TO: <alexandre@agenceverywell.fr>
 
 ## 📈 Success Rate Improvements
 
-| Scenario | Old Success Rate | New Success Rate |
-|----------|------------------|------------------|
-| Google Workspace | ~30% | **~80%** |
-| Microsoft 365 | ~20% | **~60%** |
-| Small Business | ~40% | **~85%** |
+| Scenario          | Old Success Rate     | New Success Rate  |
+| ----------------- | -------------------- | ----------------- |
+| Google Workspace  | ~30%                 | **~80%**          |
+| Microsoft 365     | ~20%                 | **~60%**          |
+| Small Business    | ~40%                 | **~85%**          |
 | Catch-All Servers | 0% (false positives) | **100% detected** |
 
 **Note:** Some corporate servers still block all external SMTP verification (this is normal and happens to ZeroBounce too).
@@ -110,43 +120,52 @@ RCPT TO: <alexandre@agenceverywell.fr>
 ### New Status Messages
 
 **1. Mailbox Verified (High Confidence)**
+
 ```
 ✅ Mailbox verified
 SMTP: High confidence - Inbox exists
 ```
 
 **2. Mailbox Not Found**
+
 ```
 ❌ Mailbox not found
 SMTP: No such user
 ```
 
 **3. Catch-All Server**
+
 ```
 ⚠️ Catch-all server
 Cannot verify mailbox
 ```
-*Tooltip: "Server accepts all email addresses (catch-all). Cannot verify if this specific mailbox exists."*
+
+_Tooltip: "Server accepts all email addresses (catch-all). Cannot verify if this specific mailbox exists."_
 
 **4. Policy Block**
+
 ```
 ⚠️ SMTP blocked
 3 MX tried - Policy block
 ```
-*Tooltip: "Server policy blocked verification. Tried 3 MX servers. Common for corporate email."*
+
+_Tooltip: "Server policy blocked verification. Tried 3 MX servers. Common for corporate email."_
 
 **5. Temporary Error**
+
 ```
 ⚠️ Temporary error
 Try again later
 ```
-*Tooltip: "Temporary SMTP error - server busy or rate limiting."*
+
+_Tooltip: "Temporary SMTP error - server busy or rate limiting."_
 
 ---
 
 ## 🔄 Comparison: Before vs After
 
 ### Before (Old Code)
+
 ```javascript
 // Only tries first MX server
 const mxHost = mxRecords[0].exchange;
@@ -165,23 +184,24 @@ if (code === 550) {
 **Result:** ⚠️ SMTP inconclusive (78 score)
 
 ### After (New Code)
+
 ```javascript
 // Try up to 3 MX servers
 for (let i = 0; i < Math.min(3, mxRecords.length); i++) {
-  
   // Multiple strategies
   for (const strategy of [1, 2, 3]) {
-    
     // Proper EHLO hostname
     ehloHost = "email-validator-pwk6.onrender.com";
-    
+
     // Detailed error analysis
-    if (responseText.includes("user unknown") || 
-        responseText.includes("mailbox not found")) {
+    if (
+      responseText.includes("user unknown") ||
+      responseText.includes("mailbox not found")
+    ) {
       resolve({
         exists: false,
         reason: "mailbox_not_found",
-        confidence: "high"
+        confidence: "high",
       });
     }
   }
@@ -198,6 +218,7 @@ const isCatchAll = await detectCatchAll(mxHost);
 ## 🧪 Testing Different Scenarios
 
 ### Test 1: Non-Existent Mailbox (Google Workspace)
+
 ```bash
 curl -X POST http://localhost:8787/api/smtp-verify \
   -H "X-API-Key: your-api-key" \
@@ -205,6 +226,7 @@ curl -X POST http://localhost:8787/api/smtp-verify \
 ```
 
 **Response:**
+
 ```json
 {
   "exists": false,
@@ -214,9 +236,11 @@ curl -X POST http://localhost:8787/api/smtp-verify \
   "mxHost": "aspmx.l.google.com"
 }
 ```
+
 ✅ **Success!** Correctly identified as non-existent.
 
 ### Test 2: Catch-All Server
+
 ```json
 {
   "exists": "unknown",
@@ -225,9 +249,11 @@ curl -X POST http://localhost:8787/api/smtp-verify \
   "message": "Server accepts all emails - cannot verify"
 }
 ```
+
 ✅ **Detected!** Prevents false positives.
 
 ### Test 3: Policy Block
+
 ```json
 {
   "exists": "unknown",
@@ -236,6 +262,7 @@ curl -X POST http://localhost:8787/api/smtp-verify \
   "message": "Server policy blocked verification"
 }
 ```
+
 ℹ️ **Expected** - Some servers block all verification.
 
 ---
@@ -269,33 +296,37 @@ Even professional services like ZeroBounce can't overcome:
 
 ### When to Use Each Validation Level
 
-| Scenario | Validation Level | What It Checks |
-|----------|------------------|----------------|
-| **Bulk Newsletter** | Quick | Syntax, DNS, disposable |
-| **Marketing List** | Standard | + MX records, domain age, website |
-| **Sales Leads** | Deep | + **SMTP mailbox verification** |
-| **Critical Emails** | Deep + Manual | SMTP + human verification |
+| Scenario            | Validation Level | What It Checks                    |
+| ------------------- | ---------------- | --------------------------------- |
+| **Bulk Newsletter** | Quick            | Syntax, DNS, disposable           |
+| **Marketing List**  | Standard         | + MX records, domain age, website |
+| **Sales Leads**     | Deep             | + **SMTP mailbox verification**   |
+| **Critical Emails** | Deep + Manual    | SMTP + human verification         |
 
 ---
 
 ## 🎯 Next Steps (Optional Enhancements)
 
 ### 1. Dedicated IP Pool
+
 - Rent dedicated IPs with clean reputation
 - Better acceptance by corporate servers
 - **Cost:** ~$50-100/month per IP
 
 ### 2. ZeroBounce API Integration
+
 - Offer premium verification through ZeroBounce API
 - Use for critical emails when SMTP blocked
 - **Cost:** ~$16 per 2,000 verifications
 
 ### 3. Double Opt-In System
+
 - Send confirmation email before adding to list
 - Most reliable method (industry standard)
 - **Cost:** Free (just email delivery)
 
 ### 4. Retry Queue
+
 - Automatically retry temporary errors after delay
 - Better handling of greylisting
 - **Cost:** Free (implementation time)
@@ -313,6 +344,7 @@ Even professional services like ZeroBounce can't overcome:
 ## ✅ Summary
 
 Your email validator now:
+
 - ✅ **Verifies mailboxes** like ZeroBounce (when servers allow it)
 - ✅ **Detects catch-all** servers to prevent false positives
 - ✅ **Tries multiple** MX servers with different strategies
@@ -321,6 +353,7 @@ Your email validator now:
 - ✅ **Reduces false confidence** when certainty is low
 
 **For alexandre@agenceverywell.fr:**
+
 - ZeroBounce: ❌ Invalid (mailbox_not_found)
 - Your Validator: ❌ **Invalid (mailbox_not_found)** ← **Same result!**
 

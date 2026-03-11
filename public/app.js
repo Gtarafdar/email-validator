@@ -1493,12 +1493,12 @@ const Validator = {
     // SMTP Mailbox Verification - DEEP level only (IMPROVED)
     // Real inbox checking - use sparingly (rate limited to 20/min)
     // Now tries multiple MX servers and detects catch-all configurations
+    // Works for ALL domains like ZeroBounce (not just corporate)
     if (
       validationLevel === "deep" &&
       !result.disposable &&
       !result.isSpamTrap &&
-      result.mxFound &&
-      result.isCorporateEmail // Only for corporate emails, avoid free providers
+      result.mxFound // SMTP verification for ALL emails (like ZeroBounce)
     ) {
       try {
         const smtpResult = await this.checkSMTP(normalized);
@@ -1509,6 +1509,7 @@ const Validator = {
         result.smtpReason = smtpResult.reason; // catch_all, mailbox_not_found, policy_block, etc.
         result.smtpCatchAll = smtpResult.catchAll || false;
         result.smtpMxTried = smtpResult.mxTried || [];
+        result.smtpResponseText = smtpResult.responseText || ""; // For blacklist detection
 
         if (smtpResult.exists === true && !smtpResult.catchAll) {
           // Definitive: Mailbox exists and it's not catch-all
@@ -1518,9 +1519,10 @@ const Validator = {
           result.score += 15; // Bonus for confirmed mailbox
         } else if (smtpResult.exists === false) {
           // Definitive: Mailbox does not exist
-          const reasonText = smtpResult.reason === "mailbox_not_found" 
-            ? "mailbox not found" 
-            : "rejected by server";
+          const reasonText =
+            smtpResult.reason === "mailbox_not_found"
+              ? "mailbox not found"
+              : "rejected by server";
           result.allWarnings.push(
             `❌ Mailbox does not exist - SMTP verification failed (${reasonText})`,
           );
@@ -1533,9 +1535,27 @@ const Validator = {
           result.score -= 15; // Reduce confidence
         } else if (smtpResult.reason === "policy_block") {
           // Blocked by server policy (spam filters, IP blacklist)
-          result.allWarnings.push(
-            "⚠️ SMTP verification blocked by server policy - common for corporate email. Cannot confirm mailbox exists. Try multiple attempts: " + (smtpResult.mxTried?.length || 1) + " MX server(s) tried.",
-          );
+          // Check if responseText mentions blacklist
+          const responseText = smtpResult.responseText || "";
+          const isIPBlacklisted = 
+            responseText.toLowerCase().includes("spamhaus") ||
+            responseText.toLowerCase().includes("blacklist") ||
+            responseText.toLowerCase().includes("blocked") ||
+            responseText.toLowerCase().includes("rbl");
+          
+          if (isIPBlacklisted) {
+            result.allWarnings.push(
+              "🚫 IP BLACKLIST DETECTED - Server IP is blacklisted (Spamhaus/RBL). This prevents accurate verification. Tried " +
+              (smtpResult.mxTried?.length || 1) +
+              " MX server(s). Solutions: Use dedicated IPs, proxy service, or ZeroBounce API integration.",
+            );
+          } else {
+            result.allWarnings.push(
+              "⚠️ SMTP verification blocked by server policy - common for corporate email. Cannot confirm mailbox exists. Tried " +
+              (smtpResult.mxTried?.length || 1) +
+              " MX server(s).",
+            );
+          }
           result.score -= 15; // Reduce confidence
         } else if (smtpResult.reason === "temporary_error") {
           // Temporary error (greylisting, rate limit)
@@ -1546,7 +1566,9 @@ const Validator = {
         } else if (smtpResult.exists === "unknown") {
           // Other inconclusive result
           result.allWarnings.push(
-            "⚠️ SMTP verification inconclusive - cannot confirm mailbox exists. Server may have disabled verification. " + (smtpResult.mxTried?.length || 1) + " MX server(s) tried. Recommend manual verification.",
+            "⚠️ SMTP verification inconclusive - cannot confirm mailbox exists. Server may have disabled verification. " +
+              (smtpResult.mxTried?.length || 1) +
+              " MX server(s) tried. Recommend manual verification.",
           );
           result.score -= 15; // Reduce confidence
         }
@@ -2954,14 +2976,16 @@ const UI = {
     if (result.smtpVerified) {
       if (result.mailboxExists === true && !result.smtpCatchAll) {
         // Confirmed: Mailbox exists (not catch-all)
-        const confidenceText = result.smtpConfidence === "high" ? "High confidence" : "Verified";
+        const confidenceText =
+          result.smtpConfidence === "high" ? "High confidence" : "Verified";
         html += `<br><small style="color: #10b981; font-weight: 600;">✅ Mailbox verified</small>`;
         html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: ${confidenceText} - Inbox exists</small>`;
       } else if (result.mailboxExists === false) {
         // Confirmed: Mailbox does NOT exist
-        const reasonText = result.smtpReason === "mailbox_not_found" 
-          ? "No such user" 
-          : "Rejected";
+        const reasonText =
+          result.smtpReason === "mailbox_not_found"
+            ? "No such user"
+            : "Rejected";
         html += `<br><small style="color: #ef4444; font-weight: 600;">❌ Mailbox not found</small>`;
         html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: ${reasonText}</small>`;
       } else if (result.smtpCatchAll || result.smtpReason === "catch_all") {
@@ -2969,10 +2993,21 @@ const UI = {
         html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Server accepts all email addresses (catch-all). Cannot verify if this specific mailbox exists. Common for small businesses and privacy-focused domains.">⚠️ Catch-all server</small>`;
         html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Cannot verify mailbox</small>`;
       } else if (result.smtpReason === "policy_block") {
-        // Blocked by server policy
+        // Blocked by server policy - check for IP blacklist
         const mxCount = result.smtpMxTried?.length || 1;
-        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Server policy blocked verification (spam filters, IP reputation). Tried ${mxCount} MX server(s). This is common for corporate email and not specific to Render.">⚠️ SMTP blocked</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">${mxCount} MX tried - Policy block</small>`;
+        const responseText = result.smtpResponseText || "";
+        const isIPBlacklisted = 
+          responseText.toLowerCase().includes("spamhaus") ||
+          responseText.toLowerCase().includes("blacklist") ||
+          responseText.toLowerCase().includes("rbl");
+        
+        if (isIPBlacklisted) {
+          html += `<br><small style="color: #ef4444; font-weight: 600;" data-tooltip="Server IP is blacklisted on Spamhaus/RBL. This is a Render infrastructure issue. Tried ${mxCount} MX server(s). Solutions: Use dedicated IPs, SOCKS5 proxy, or integrate ZeroBounce API for critical verifications.">🚫 IP Blacklisted</small>`;
+          html += `<br><small style="color: #6b7280; font-size: 0.75rem;">${mxCount} MX - Spamhaus block</small>`;
+        } else {
+          html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Server policy blocked verification (spam filters, IP reputation). Tried ${mxCount} MX server(s). This is common for corporate email.">⚠️ SMTP blocked</small>`;
+          html += `<br><small style="color: #6b7280; font-size: 0.75rem;">${mxCount} MX tried - Policy block</small>`;
+        }
       } else if (result.smtpReason === "temporary_error") {
         // Temporary error
         html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Temporary SMTP error - server busy or rate limiting. Try again later.">⚠️ Temporary error</small>`;
