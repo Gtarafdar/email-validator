@@ -7,7 +7,7 @@
  */
 
 // Load environment variables from .env file (for local development)
-require('dotenv').config();
+require("dotenv").config();
 
 const express = require("express");
 const dns = require("node:dns").promises;
@@ -29,15 +29,19 @@ const API_KEY = process.env.API_KEY || "dev-key-change-in-production";
 // SOCKS5_PORT=1080
 // SOCKS5_USER=your-surfshark-username
 // SOCKS5_PASS=your-surfshark-password
-const SOCKS5_CONFIG = process.env.SOCKS5_HOST ? {
-  host: process.env.SOCKS5_HOST,
-  port: parseInt(process.env.SOCKS5_PORT || "1080"),
-  user: process.env.SOCKS5_USER,
-  pass: process.env.SOCKS5_PASS,
-} : null;
+const SOCKS5_CONFIG = process.env.SOCKS5_HOST
+  ? {
+      host: process.env.SOCKS5_HOST,
+      port: parseInt(process.env.SOCKS5_PORT || "1080"),
+      user: process.env.SOCKS5_USER,
+      pass: process.env.SOCKS5_PASS,
+    }
+  : null;
 
 if (SOCKS5_CONFIG) {
-  console.log(`✓ SOCKS5 proxy enabled: ${SOCKS5_CONFIG.host}:${SOCKS5_CONFIG.port}`);
+  console.log(
+    `✓ SOCKS5 proxy enabled: ${SOCKS5_CONFIG.host}:${SOCKS5_CONFIG.port}`,
+  );
   console.log(`  This routes SMTP through VPN for clean IPs!`);
 }
 
@@ -80,6 +84,15 @@ app.get("/health", (req, res) => {
     status: "ok",
     privacy: "no data stored",
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Config endpoint - returns API key for same-origin requests (no auth required)
+// This allows the frontend to auto-configure when served from the same server
+app.get("/api/config", (req, res) => {
+  res.json({
+    apiKey: API_KEY,
+    message: "Auto-configuration enabled for same-origin requests",
   });
 });
 
@@ -753,7 +766,7 @@ app.post(
       const verifySMTP = (mxHost, strategy = 1) => {
         return new Promise(async (resolve, reject) => {
           let socket;
-          
+
           // If SOCKS5 proxy is configured, route through VPN
           if (SOCKS5_CONFIG) {
             try {
@@ -765,23 +778,25 @@ app.post(
                   userId: SOCKS5_CONFIG.user,
                   password: SOCKS5_CONFIG.pass,
                 },
-                command: 'connect',
+                command: "connect",
                 destination: {
                   host: mxHost,
-                  port: 25
-                }
+                  port: 25,
+                },
               };
-              
+
               const info = await SocksClient.createConnection(options);
               socket = info.socket;
             } catch (proxyError) {
-              return reject(new Error(`Proxy connection failed: ${proxyError.message}`));
+              return reject(
+                new Error(`Proxy connection failed: ${proxyError.message}`),
+              );
             }
           } else {
             // No proxy - direct connection (may be blacklisted on free hosting)
             socket = net.createConnection(25, mxHost);
           }
-          
+
           const timeout = setTimeout(() => {
             socket.destroy();
             reject(new Error("Connection timeout"));

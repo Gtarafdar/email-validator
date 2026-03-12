@@ -3484,7 +3484,7 @@ const UI = {
     this.showNotification("All data cleared", "success");
   },
 
-  loadApiKey() {
+  async loadApiKey() {
     const apiKeyInput = document.getElementById("apiKeyInput");
     const apiKeyStatus = document.getElementById("apiKeyStatus");
 
@@ -3499,6 +3499,21 @@ const UI = {
       const defaultKey = "dev-key-change-in-production";
       ApiConfig.setApiKey(defaultKey);
       console.log("✅ Auto-configured API key for localhost development");
+    } else if (!isLocalhost && !ApiConfig.isConfigured()) {
+      // When not on localhost and no API key configured, try to fetch from server
+      try {
+        console.log("🔍 Attempting to fetch API key from server...");
+        const response = await fetch("/api/config");
+        if (response.ok) {
+          const config = await response.json();
+          if (config.apiKey) {
+            ApiConfig.setApiKey(config.apiKey);
+            console.log("✅ Auto-configured API key from server");
+          }
+        }
+      } catch (error) {
+        console.log("⚠️  Could not auto-fetch API key from server:", error.message);
+      }
     }
 
     if (apiKeyInput && ApiConfig.isConfigured()) {
@@ -3506,7 +3521,7 @@ const UI = {
       if (apiKeyStatus) {
         apiKeyStatus.textContent = isLocalhost
           ? "✅ API key configured (localhost auto-detected)"
-          : "✅ API key configured";
+          : "✅ API key configured (auto-detected from server)";
         apiKeyStatus.style.color = "#10b981";
       }
     } else if (apiKeyStatus) {
