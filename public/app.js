@@ -505,7 +505,9 @@ const Validator = {
           lastHealthCheck: null,
         },
       ];
-      console.log("✅ Using current server for SMTP verification (port 25 available)");
+      console.log(
+        "✅ Using current server for SMTP verification (port 25 available)",
+      );
     } else {
       // On localhost, use external providers
       this.smtpProviders = [
@@ -535,7 +537,12 @@ const Validator = {
     try {
       // Skip IP health check for current server (we trust our own server)
       if (provider.name === "current-server") {
-        return { ip: "current-server", blacklisted: false, blacklistedOn: [], checkedAt: new Date().toISOString() };
+        return {
+          ip: "current-server",
+          blacklisted: false,
+          blacklistedOn: [],
+          checkedAt: new Date().toISOString(),
+        };
       }
 
       const now = Date.now();
@@ -1257,37 +1264,68 @@ const Validator = {
       score -= 5 * result.providerWarnings.length;
     }
 
-    // CAP SCORE: Without SMTP verification, we cannot guarantee mailbox exists
-    // Max score is 85 to reflect this limitation (not 100)
-    const maxScoreWithoutSMTP = 85;
-    score = Math.max(0, Math.min(maxScoreWithoutSMTP, score));
+    // CRITICAL: SMTP Mailbox Verification Results
+    // This is the most important check - if mailbox doesn't exist, email is INVALID
+    if (result.smtpVerified === true) {
+      if (result.mailboxExists === true && !result.smtpCatchAll) {
+        // VERIFIED mailbox exists - highest confidence
+        score += 20; // Major bonus for confirmed mailbox
+      } else if (result.mailboxExists === false) {
+        // VERIFIED mailbox does NOT exist - email is INVALID
+        score -= 70; // MASSIVE penalty - this email will bounce!
+      } else if (result.smtpCatchAll) {
+        // Catch-all server - cannot verify, reduce confidence
+        score -= 15;
+      } else if (result.smtpReason === "policy_block") {
+        // SMTP check blocked by server policy
+        score -= 10; // Moderate penalty - uncertain
+      } else if (result.smtpReason === "temporary_error") {
+        // Temporary error - try again later
+        score -= 5; // Light penalty
+      } else {
+        // Unknown/inconclusive SMTP result
+        score -= 10;
+      }
+    }
+
+    // CAP SCORE based on SMTP verification status
+    let maxScore;
+    if (result.smtpVerified && result.mailboxExists === true) {
+      maxScore = 95; // SMTP verified mailbox exists - can reach 95%
+    } else if (result.smtpVerified) {
+      maxScore = 50; // SMTP checked but mailbox doesn't exist or inconclusive - max 50%
+    } else {
+      maxScore = 75; // No SMTP verification - max 75% (uncertainty about mailbox)
+    }
+    
+    score = Math.max(0, Math.min(maxScore, score));
 
     return score;
   },
 
   recommend(score) {
-    // Note: Score capped at 85 without SMTP verification (85-100 reserved for confirmed mailboxes)
-    // 80-85: Likely deliverable (DNS passed, but mailbox not verified)
-    // 60-79: Review (some concerns - missing auth, SMTP blocked, configuration issues)
-    // 0-59: Suppress (major issues - no MX, disposable, spam trap, etc.)
-    if (score >= 80) return "likely_deliverable"; // High confidence: 80-85 (DNS only)
-    if (score >= 60) return "review"; // Medium confidence: 60-79 (uncertainty or minor issues)
-    return "suppress"; // Low confidence: 0-59 (major red flags)
+    // Updated scoring with SMTP verification:
+    // 80-95: Send (High confidence - SMTP verified OR strong DNS signals)
+    // 50-79: Review (Medium confidence - missing auth, unverified mailbox, minor issues)
+    // 0-49: Suppress (Low confidence - mailbox doesn't exist, disposable, spam trap, etc.)
+    if (score >= 80) return "send"; // High confidence: safe to send
+    if (score >= 50) return "review"; // Medium confidence: review before sending
+    return "suppress"; // Low confidence: do not send (will bounce or risky)
   },
 
   getConfidenceLevel(confidence) {
-    // Adjusted for max 85% confidence (no SMTP verification)
-    if (confidence >= 75)
+    // Updated confidence labels with SMTP verification
+    if (confidence >= 80)
       return {
         level: "high",
-        label: "High Confidence (DNS Only)",
+        label: "High Confidence ✅",
         emoji: "✅",
       };
     if (confidence >= 60)
-      return { level: "medium", label: "Medium Confidence", emoji: "⚠️" };
+      return { level: "medium", label: "Medium Confidence ⚠️", emoji: "⚠️" };
     if (confidence >= 40)
-      return { level: "low", label: "Low Confidence", emoji: "❓" };
-    return { level: "very-low", label: "Very Low Confidence", emoji: "🚫" };
+      return { level: "low", label: "Low Confidence ❓", emoji: "❓" };
+    return { level: "very-low", label: "Very Low Confidence 🚫", emoji: "🚫" };
   },
 
   async checkDNS(domain) {
@@ -1470,7 +1508,9 @@ const Validator = {
         );
 
         // Use relative URL for current server, full URL for external providers
-        const smtpUrl = provider.url ? `${provider.url}/api/smtp-verify` : "/api/smtp-verify";
+        const smtpUrl = provider.url
+          ? `${provider.url}/api/smtp-verify`
+          : "/api/smtp-verify";
 
         const response = await fetch(smtpUrl, {
           method: "POST",
@@ -1831,7 +1871,7 @@ const Validator = {
           result.allWarnings.push(
             "✅ Mailbox verified via SMTP - inbox exists (high confidence)",
           );
-          result.score += 15; // Bonus for confirmed mailbox
+          // NOTE: Score bonus applied in score() function, not here
         } else if (smtpResult.exists === false) {
           // Definitive: Mailbox does not exist
           const reasonText =
@@ -1841,13 +1881,13 @@ const Validator = {
           result.allWarnings.push(
             `❌ Mailbox does not exist - SMTP verification failed (${reasonText})`,
           );
-          result.score -= 30; // Penalty for non-existent mailbox
+          // NOTE: Score penalty applied in score() function, not here
         } else if (smtpResult.catchAll || smtpResult.reason === "catch_all") {
           // Server accepts all addresses - cannot verify
           result.allWarnings.push(
             "⚠️ Catch-all server detected - accepts all emails. Cannot verify if mailbox exists. Recommend test send or manual verification.",
           );
-          result.score -= 15; // Reduce confidence
+          // NOTE: Score penalty applied in score() function, not here
         } else if (smtpResult.reason === "policy_block") {
           // Blocked by server policy (spam filters, IP blacklist)
           // Check if responseText mentions blacklist
@@ -1871,13 +1911,13 @@ const Validator = {
                 " MX server(s).",
             );
           }
-          result.score -= 5; // Smaller penalty when IP is blacklisted (not email's fault)
+          // NOTE: Score penalty applied in score() function, not here
         } else if (smtpResult.reason === "temporary_error") {
           // Temporary error (greylisting, rate limit)
           result.allWarnings.push(
             "⚠️ Temporary SMTP error - server is busy or rate limiting. Try again later.",
           );
-          result.score -= 10; // Smaller penalty for temporary issues
+          // NOTE: Score penalty applied in score() function, not here
         } else if (smtpResult.exists === "unknown") {
           // Other inconclusive result - use smart heuristics instead of heavy penalty
           result.allWarnings.push(
@@ -1885,39 +1925,13 @@ const Validator = {
               (smtpResult.mxTried?.length || 1) +
               " MX server(s) tried. Relying on other signals (domain reputation, auth records, etc.).",
           );
-
-          // SMART HEURISTIC: If strong positive signals exist, don't penalize heavily
-          const hasStrongPositiveSignals =
-            result.mxFound &&
-            result.spf &&
-            !result.disposable &&
-            !result.isSpamTrap &&
-            !result.typoSuggestion;
-
-          if (hasStrongPositiveSignals) {
-            result.score -= 5; // Light penalty - other signals look good
-          } else {
-            result.score -= 15; // Heavier penalty - other signals are weak too
-          }
+          // NOTE: Score penalty applied in score() function based on strong signals
         }
       } catch (e) {
         result.smtpVerified = false;
         result.mailboxExists = "unknown";
-
-        // SMART HEURISTIC: Don't penalize heavily if other signals are strong
-        const hasStrongPositiveSignals =
-          result.mxFound &&
-          result.spf &&
-          !result.disposable &&
-          !result.isSpamTrap &&
-          !result.typoSuggestion;
-
-        if (hasStrongPositiveSignals) {
-          result.score -= 5; // Light penalty
-        } else {
-          result.score -= 15; // Normal penalty
-        }
         console.warn("SMTP verification failed for", normalized, e);
+        // NOTE: Score penalty applied in score() function
       }
     }
 
@@ -1960,8 +1974,10 @@ const Validator = {
       result.status = "risky_or_undeliverable";
     } else if (result.recommendation === "review") {
       result.status = "review_before_send";
+    } else if (result.recommendation === "send") {
+      result.status = "send_ready";
     } else {
-      result.status = "likely_deliverable";
+      result.status = "unknown";
     }
 
     return result;
@@ -2109,8 +2125,10 @@ const Validator = {
         result.status = "risky_or_undeliverable";
       } else if (result.recommendation === "review") {
         result.status = "review_before_send";
+      } else if (result.recommendation === "send") {
+        result.status = "send_ready";
       } else {
-        result.status = "likely_deliverable";
+        result.status = "unknown";
       }
 
       results.push(result);
@@ -2798,9 +2816,16 @@ const UI = {
         progressFill.style.width = `${percentage}%`;
         progressText.textContent = `${i + 1} / ${total}`;
 
-        // Small delay to prevent overwhelming the browser (every 10 emails)
-        if (i % 10 === 0) {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+        // RATE LIMITING: Add delay after SMTP verification to prevent port blocking
+        // Deep validation uses SMTP checks which can trigger anti-spam measures if too fast
+        if (validationLevel === "deep") {
+          // 2 second delay between SMTP checks to be respectful to mail servers
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        } else {
+          // Small delay for non-SMTP checks (every 10 emails)
+          if (i % 10 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
         }
       }
 
@@ -3408,10 +3433,9 @@ const UI = {
 
   formatRecommendation(rec) {
     const labels = {
-      likely_deliverable: "Likely Deliverable",
-      send: "Send",
-      review: "Review",
-      suppress: "Suppress",
+      send: "✅ Send",
+      review: "⚠️ Review",
+      suppress: "🚫 Suppress",
     };
     return labels[rec] || rec;
   },
