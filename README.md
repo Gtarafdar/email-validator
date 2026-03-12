@@ -780,8 +780,6 @@ Deploy with full SMTP verification:
 
 See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete setup guide.
 
-**Note:** The live demo at http://84.46.251.124:8787 is a private paid instance. You can run your own instance by following the deployment guide or running locally.
-
 ## 🌟 Why This Tool?
 
 Most email validation services:
