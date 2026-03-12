@@ -717,7 +717,7 @@ For issues or questions:
 
 - [ ] Webhook integrations
 - [ ] Advanced reporting dashboard
-- [ ] Export to multiple formats (JSON, XML) - *CSV currently supported*
+- [ ] Export to multiple formats (JSON, XML) - _CSV currently supported_
 - [ ] Email list segmentation
 - [ ] A/B testing groups
 - [ ] Integration with popular ESPs (Mailchimp, SendGrid, etc.)
@@ -754,6 +754,7 @@ npm start
 ```
 
 **Features:**
+
 - ✅ Full source code access
 - ✅ Free to run
 - ✅ Complete privacy (all data stays local)
@@ -765,11 +766,13 @@ npm start
 Deploy with full SMTP verification:
 
 **Requirements:**
+
 - Port 25 must be open (for SMTP mailbox verification)
 - Static IP address
 - Root/sudo access
 
 **Recommended Provider: Contabo VPS**
+
 - ✅ Port 25 open by default
 - ✅ $5.50/month (VPS S plan)
 - ✅ 95% accuracy with real SMTP verification
@@ -986,6 +989,7 @@ Your support helps keep this project free and open-source!
 ## 🚀 Getting Started
 
 **Run Locally (Free):**
+
 ```bash
 git clone https://github.com/Gtarafdar/email-validator.git
 cd email-validator && npm install
@@ -994,8 +998,6 @@ npm start
 # Access at: http://localhost:8787
 ```
 
-**Production Demo:** http://84.46.251.124:8787 *(Private paid instance - for reference only)*
-
-**Want Your Own?** See [DEPLOYMENT.md](DEPLOYMENT.md) for Contabo VPS setup with SMTP verification.
+**Want Your Own Production Instance?** See [DEPLOYMENT.md](DEPLOYMENT.md) for Contabo VPS setup with SMTP verification.
 
 _Last updated: 2026-03-12 - Production deployment with 95% SMTP verification!_
