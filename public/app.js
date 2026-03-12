@@ -3368,7 +3368,7 @@ const UI = {
       const color = isSecure ? "#10b981" : "#3b82f6";
       const icon = isSecure ? "🔒" : "🌐";
       html += `<br><small style="color: ${color}; font-weight: 500;">${icon} Active (${protocol})</small>`;
-      
+
       // Only show "Higher deliverability" if mailbox verification passed or not checked
       if (result.mailboxExists !== false) {
         html += `<br><small style="color: #6b7280; font-size: 0.75rem;">✓ Better deliverability</small>`;
@@ -3439,13 +3439,13 @@ const UI = {
   },
 
   getStatusClass(status) {
-    // Map status to badge colors
-    if (status === "send_ready") return "success"; // Green
-    if (status.includes("deliverable")) return "success"; // Green  
-    if (status === "review_before_send") return "warning"; // Yellow
-    if (status.includes("review")) return "warning"; // Yellow
-    if (status === "risky_or_undeliverable") return "danger"; // Red
-    if (status.includes("invalid") || status.includes("suppress")) return "danger"; // Red
+    // Map status to badge colors - specific checks first!
+    if (status === "send_ready") return "success"; // Green - deliverable
+    if (status === "risky_or_undeliverable") return "danger"; // Red - not deliverable
+    if (status === "review_before_send") return "warning"; // Yellow - needs review
+    if (status.includes("review")) return "warning"; // Yellow - review category
+    if (status.includes("invalid") || status.includes("suppress"))
+      return "danger"; // Red - invalid/suppress
     return "warning"; // Default to yellow for unknown
   },
 
