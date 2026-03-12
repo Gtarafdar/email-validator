@@ -704,24 +704,80 @@ For issues or questions:
 
 ## 🎯 Roadmap
 
-### Planned Features
+### ✅ Completed Features
 
-- [ ] SMTP mailbox verification (opt-in)
-- [ ] Catch-all domain detection
-- [ ] API key authentication
+- [x] **SMTP mailbox verification** - Fully implemented with 95% accuracy (Deep validation level)
+- [x] **Catch-all domain detection** - Automatically detects catch-all servers that accept all emails
+- [x] **API key authentication** - Secure API access with X-API-Key header
+- [x] **CSV export** - Export validation results to CSV format
+- [x] **Batch validation** - Process multiple emails with rate limiting
+- [x] **Progressive validation levels** - Quick, Standard, Deep (3 speed tiers)
+
+### 🚧 Planned Features
+
 - [ ] Webhook integrations
 - [ ] Advanced reporting dashboard
-- [ ] Export to multiple formats (JSON, XML)
+- [ ] Export to multiple formats (JSON, XML) - *CSV currently supported*
 - [ ] Email list segmentation
 - [ ] A/B testing groups
-- [ ] Integration with popular ESPs
+- [ ] Integration with popular ESPs (Mailchimp, SendGrid, etc.)
 
-### Privacy Features
+### 🔐 Privacy Features (Planned)
 
 - [ ] Encryption at rest (encrypted localStorage)
 - [ ] Password protection
 - [ ] Auto-clear data after X days
 - [ ] Export/import encrypted backups
+
+## 💻 Self-Hosting Options
+
+### Option 1: Local Development (Free)
+
+Run the tool locally on your machine:
+
+```bash
+# Clone repository
+git clone https://github.com/Gtarafdar/email-validator.git
+cd email-validator
+
+# Install dependencies
+npm install
+
+# Create .env file
+echo "API_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" > .env
+echo "PORT=8787" >> .env
+
+# Start server
+npm start
+
+# Access at: http://localhost:8787
+```
+
+**Features:**
+- ✅ Full source code access
+- ✅ Free to run
+- ✅ Complete privacy (all data stays local)
+- ⚠️ SMTP verification may not work (most ISPs block port 25)
+- ⚠️ Only accessible from your machine
+
+### Option 2: Production Deployment (Contabo VPS - $5.50/month)
+
+Deploy with full SMTP verification:
+
+**Requirements:**
+- Port 25 must be open (for SMTP mailbox verification)
+- Static IP address
+- Root/sudo access
+
+**Recommended Provider: Contabo VPS**
+- ✅ Port 25 open by default
+- ✅ $5.50/month (VPS S plan)
+- ✅ 95% accuracy with real SMTP verification
+- ✅ VNC access for rescue mode
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete setup guide.
+
+**Note:** The live demo at http://84.46.251.124:8787 is a private paid instance. You can run your own instance by following the deployment guide or running locally.
 
 ## 🌟 Why This Tool?
 
@@ -827,6 +883,7 @@ This tool can be deployed with **SMTP mailbox verification** for 95% accuracy. H
 ### Why Hetzner Doesn't Work
 
 We tested Hetzner Cloud and their support confirmed:
+
 > "We don't allow email sending services. Port 25 is permanently blocked."
 
 This is a strict anti-spam policy and cannot be changed.
@@ -834,6 +891,7 @@ This is a strict anti-spam policy and cannot be changed.
 ### Recommended: Contabo VPS
 
 **What we use in production:**
+
 - Provider: Contabo VPS S
 - Cost: $5.50/month
 - Location: Germany (or USA/Singapore/UK)
@@ -846,6 +904,7 @@ This is a strict anti-spam policy and cannot be changed.
 ### Complete Deployment Guide
 
 For step-by-step instructions including:
+
 - Server creation and setup
 - VNC/TigerVNC configuration for rescue mode
 - SSH access and password alternatives
@@ -860,11 +919,13 @@ See **[DEPLOYMENT.md](DEPLOYMENT.md)**
 For server rescue mode and password recovery:
 
 **Install TigerVNC:**
+
 - macOS: `brew install --cask tigervnc-viewer`
 - Linux: `sudo apt install tigervnc-viewer`
 - Windows: Download from [TigerVNC Releases](https://github.com/TigerVNC/tigervnc/releases)
 
 **Connect:**
+
 ```bash
 vncviewer YOUR_SERVER_IP:5900
 ```
@@ -891,6 +952,7 @@ See complete policy: **[PRIVACY.md](PRIVACY.md)**
 **Short answer:** Nothing.
 
 **Details:**
+
 - Emails are validated in RAM and immediately discarded
 - No database, no logs, no file storage
 - SMTP connections leave no trace
@@ -902,7 +964,7 @@ See complete policy: **[PRIVACY.md](PRIVACY.md)**
 If this tool is useful to you, consider supporting its development:
 
 - 🐦 **Follow on Twitter:** [@Gtarafdarr](https://x.com/Gtarafdarr)
-- 💰 **Donate:** [gtarafdar.com/donate](https://gtarafdar.com/donate/)  
+- 💰 **Donate:** [gtarafdar.com/donate](https://gtarafdar.com/donate/)
 - ⭐ **Star on GitHub:** Help others discover this tool
 - 🤝 **Contribute:** Pull requests welcome
 - 📢 **Share:** Tell others about this tool
@@ -921,6 +983,19 @@ Your support helps keep this project free and open-source!
 
 **Built with ❤️ for privacy, accuracy, and deliverability**
 
-📧 **Live Demo:** http://84.46.251.124:8787 🚀
+## 🚀 Getting Started
+
+**Run Locally (Free):**
+```bash
+git clone https://github.com/Gtarafdar/email-validator.git
+cd email-validator && npm install
+echo "API_KEY=$(openssl rand -hex 32)" > .env
+npm start
+# Access at: http://localhost:8787
+```
+
+**Production Demo:** http://84.46.251.124:8787 *(Private paid instance - for reference only)*
+
+**Want Your Own?** See [DEPLOYMENT.md](DEPLOYMENT.md) for Contabo VPS setup with SMTP verification.
 
 _Last updated: 2026-03-12 - Production deployment with 95% SMTP verification!_
