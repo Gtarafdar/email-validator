@@ -1297,7 +1297,7 @@ const Validator = {
     } else {
       maxScore = 75; // No SMTP verification - max 75% (uncertainty about mailbox)
     }
-    
+
     score = Math.max(0, Math.min(maxScore, score));
 
     return score;
@@ -3368,32 +3368,30 @@ const UI = {
       const color = isSecure ? "#10b981" : "#3b82f6";
       const icon = isSecure ? "🔒" : "🌐";
       html += `<br><small style="color: ${color}; font-weight: 500;">${icon} Active (${protocol})</small>`;
-      html += `<br><small style="color: #6b7280; font-size: 0.75rem;">✓ Higher deliverability</small>`;
+      
+      // Only show "Higher deliverability" if mailbox verification passed or not checked
+      if (result.mailboxExists !== false) {
+        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">✓ Better deliverability</small>`;
+      }
     } else if (result.websiteActive === false && result.isCorporateEmail) {
       html += `<br><small style="color: #f59e0b; font-weight: 500;">⚠️ No website</small>`;
-      html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Mail-only or inactive</small>`;
+      html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Mail-only domain</small>`;
     }
 
     // SMTP Mailbox Verification status (Deep validation - IMPROVED)
     if (result.smtpVerified) {
       if (result.mailboxExists === true && !result.smtpCatchAll) {
         // Confirmed: Mailbox exists (not catch-all)
-        const confidenceText =
-          result.smtpConfidence === "high" ? "High confidence" : "Verified";
         html += `<br><small style="color: #10b981; font-weight: 600;">✅ Mailbox verified</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: ${confidenceText} - Inbox exists</small>`;
+        html += `<br><small style="color: #10b981; font-size: 0.75rem;">SMTP: Inbox exists</small>`;
       } else if (result.mailboxExists === false) {
         // Confirmed: Mailbox does NOT exist
-        const reasonText =
-          result.smtpReason === "mailbox_not_found"
-            ? "No such user"
-            : "Rejected";
         html += `<br><small style="color: #ef4444; font-weight: 600;">❌ Mailbox not found</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">SMTP: ${reasonText}</small>`;
+        html += `<br><small style="color: #ef4444; font-size: 0.75rem;">SMTP: Rejected</small>`;
       } else if (result.smtpCatchAll || result.smtpReason === "catch_all") {
         // Catch-all server - cannot verify
-        html += `<br><small style="color: #f59e0b; font-weight: 500;" data-tooltip="Server accepts all email addresses (catch-all). Cannot verify if this specific mailbox exists. Common for small businesses and privacy-focused domains.">⚠️ Catch-all server</small>`;
-        html += `<br><small style="color: #6b7280; font-size: 0.75rem;">Cannot verify mailbox</small>`;
+        html += `<br><small style="color: #f59e0b; font-weight: 500;">⚠️ Catch-all server</small>`;
+        html += `<br><small style="color: #f59e0b; font-size: 0.75rem;">Cannot verify mailbox</small>`;
       } else if (result.smtpReason === "policy_block") {
         // Blocked by server policy - check for IP blacklist
         const mxCount = result.smtpMxTried?.length || 1;
@@ -3441,9 +3439,14 @@ const UI = {
   },
 
   getStatusClass(status) {
-    if (status.includes("deliverable")) return "success";
-    if (status.includes("review")) return "warning";
-    return "danger";
+    // Map status to badge colors
+    if (status === "send_ready") return "success"; // Green
+    if (status.includes("deliverable")) return "success"; // Green  
+    if (status === "review_before_send") return "warning"; // Yellow
+    if (status.includes("review")) return "warning"; // Yellow
+    if (status === "risky_or_undeliverable") return "danger"; // Red
+    if (status.includes("invalid") || status.includes("suppress")) return "danger"; // Red
+    return "warning"; // Default to yellow for unknown
   },
 
   getScoreClass(score) {
