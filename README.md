@@ -921,6 +921,5 @@ Your support helps keep this project free and open-source!
 
 **Built with ❤️ for privacy, accuracy, and deliverability**
 
-📧 **Live Demo:** http://84.46.251.124:8787 🚀
 
 _Last updated: 2026-03-12 - Production deployment with 95% SMTP verification!_
