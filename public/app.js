@@ -2377,9 +2377,9 @@ const UI = {
   validationCancelled: false,
   currentValidationAbortController: null,
 
-  init() {
+  async init() {
     this.selectedFormat = "auto"; // Default format for CSV imports
-    this.bindEvents();
+    await this.bindEvents();
     this.loadSavedResults();
     this.updateStats();
     this.initRealtimeValidation();
@@ -2397,7 +2397,7 @@ const UI = {
       });
   },
 
-  bindEvents() {
+  async bindEvents() {
     // Single email validation
     document
       .getElementById("validateSingleBtn")
@@ -2457,8 +2457,8 @@ const UI = {
       .getElementById("saveApiKeyBtn")
       ?.addEventListener("click", () => this.saveApiKey());
 
-    // Load saved API key on init
-    this.loadApiKey();
+    // Load saved API key on init - MUST AWAIT for remote servers
+    await this.loadApiKey();
 
     // Filter results
     document
@@ -3512,7 +3512,10 @@ const UI = {
           }
         }
       } catch (error) {
-        console.log("⚠️  Could not auto-fetch API key from server:", error.message);
+        console.log(
+          "⚠️  Could not auto-fetch API key from server:",
+          error.message,
+        );
       }
     }
 
@@ -3599,6 +3602,9 @@ if (document.readyState === "loading") {
 } else {
   UI.init();
 }
+
+// Expose UI for debugging
+window.EmailValidatorUI = UI;
 
 // Expose to window for onclick handlers
 window.UI = UI;
