@@ -483,30 +483,61 @@ const ApiConfig = {
 const Validator = {
   // SMTP Provider Configuration - Multi-provider rotation for FREE IP diversity
   // Add more providers here as you deploy to them (Railway, Fly.io, etc.)
-  smtpProviders: [
-    {
-      name: "render",
-      url: "https://email-validator-pwk6.onrender.com", // Render deployment
-      blocked: false,
-      lastChecked: null,
-      ipHealth: null, // Cached IP health status
-      lastHealthCheck: null, // Last time IP was checked
-    },
-    {
-      name: "railway",
-      url: "https://email-validator-production-afb4.up.railway.app", // Railway deployment
-      blocked: false,
-      lastChecked: null,
-      ipHealth: null,
-      lastHealthCheck: null,
-    },
-    // Add Fly.io deployment: { name: 'fly', url: 'https://YOUR_PROJECT.fly.dev', blocked: false, lastChecked: null, ipHealth: null, lastHealthCheck: null },
-  ],
+  smtpProviders: [],
   currentProviderIndex: 0,
+
+  // Initialize SMTP providers - prioritize current server if not localhost
+  initSMTPProviders() {
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "";
+
+    // If NOT localhost, use the current server first (it has port 25 open!)
+    if (!isLocalhost) {
+      this.smtpProviders = [
+        {
+          name: "current-server",
+          url: "", // Empty URL = use relative path (same server)
+          blocked: false,
+          lastChecked: null,
+          ipHealth: null,
+          lastHealthCheck: null,
+        },
+      ];
+      console.log("✅ Using current server for SMTP verification (port 25 available)");
+    } else {
+      // On localhost, use external providers
+      this.smtpProviders = [
+        {
+          name: "render",
+          url: "https://email-validator-pwk6.onrender.com",
+          blocked: false,
+          lastChecked: null,
+          ipHealth: null,
+          lastHealthCheck: null,
+        },
+        {
+          name: "railway",
+          url: "https://email-validator-production-afb4.up.railway.app",
+          blocked: false,
+          lastChecked: null,
+          ipHealth: null,
+          lastHealthCheck: null,
+        },
+      ];
+      console.log("ℹ️ Using external SMTP providers (localhost mode)");
+    }
+  },
 
   // Check provider's IP health (blacklist status)
   async checkProviderIPHealth(provider) {
     try {
+      // Skip IP health check for current server (we trust our own server)
+      if (provider.name === "current-server") {
+        return { ip: "current-server", blacklisted: false, blacklistedOn: [], checkedAt: new Date().toISOString() };
+      }
+
       const now = Date.now();
       const HEALTH_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
@@ -1365,6 +1396,11 @@ const Validator = {
   },
 
   async checkSMTP(email) {
+    // Initialize providers if not already done
+    if (this.smtpProviders.length === 0) {
+      this.initSMTPProviders();
+    }
+
     // Reset blocked providers if 24 hours passed
     this.resetBlockedProviders();
 
@@ -1433,7 +1469,10 @@ const Validator = {
           `🔍 Trying SMTP verification via ${provider.name}${health ? " (IP verified clean)" : ""}...`,
         );
 
-        const response = await fetch(`${provider.url}/api/smtp-verify`, {
+        // Use relative URL for current server, full URL for external providers
+        const smtpUrl = provider.url ? `${provider.url}/api/smtp-verify` : "/api/smtp-verify";
+
+        const response = await fetch(smtpUrl, {
           method: "POST",
           headers: ApiConfig.getHeaders(),
           body: JSON.stringify({ email }),
@@ -2725,7 +2764,7 @@ const UI = {
         } catch (error) {
           // Handle validation errors gracefully
           console.error(`Validation failed for ${email}:`, error);
-          
+
           // Create error result
           const errorResult = {
             email: email,
@@ -2740,13 +2779,16 @@ const UI = {
             checkedAt: new Date().toISOString(),
           };
           results.push(errorResult);
-          
+
           // Show API error notification if authentication fails
-          if (error.message.includes("Authentication") || error.message.includes("API")) {
+          if (
+            error.message.includes("Authentication") ||
+            error.message.includes("API")
+          ) {
             this.showNotification(
               `⚠️ API authentication error. Please check API key in Settings.`,
               "warning",
-              4000
+              4000,
             );
           }
         }
