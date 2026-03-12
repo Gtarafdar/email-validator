@@ -130,14 +130,14 @@
             <label for="validationLevel">Validation Level:</label>
             <select id="validationLevel" class="select">
               <option value="quick">⚡ Quick (Syntax + Basic)</option>
-              <option value="standard" selected>
+              <option value="standard">
                 🔍 Standard (+ DNS + Auth)
               </option>
-              <option value="deep">🔬 Deep (+ Gravatar + All Checks)</option>
+              <option value="deep" selected>🔬 Deep (+ SMTP Mailbox Verification)</option>
             </select>
             <span class="validation-hint" id="validationLevelHint"
-              >🔍 Standard validation (syntax + DNS + email
-              authentication)</span
+              >� Deep validation (syntax + DNS + auth + SMTP mailbox
+              verification)</span
             >
           </div>
 
@@ -179,10 +179,10 @@
             <label for="bulkValidationLevel">Validation Level:</label>
             <select id="bulkValidationLevel" class="select">
               <option value="quick">⚡ Quick (Syntax + Basic)</option>
-              <option value="standard" selected>
+              <option value="standard">
                 🔍 Standard (+ DNS + Auth)
               </option>
-              <option value="deep">
+              <option value="deep" selected>
                 🔬 Deep (+ SMTP Mailbox Verification)
               </option>
             </select>

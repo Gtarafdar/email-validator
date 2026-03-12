@@ -3,6 +3,7 @@
 ## Choose Your Deployment:
 
 ### 🌟 **Production (Recommended)** - Hetzner VPS
+
 **ZeroBounce-level accuracy | €2.99/month | Clean IPs**
 
 👉 **[Jump to Hetzner Deployment](#hetzner-deployment-399month)**
@@ -10,6 +11,7 @@
 ---
 
 ### 💻 **Local Testing** - Your Computer
+
 **Free | For development only | Works with adjusted scoring**
 
 ```bash
@@ -32,6 +34,7 @@ npm start
 ## Hetzner Deployment (€2.99/month)
 
 ### Why Hetzner?
+
 - ✅ **Clean datacenter IPs** (NOT blacklisted like Render/Railway)
 - ✅ **95% accuracy** (matches ZeroBounce/Clearout)
 - ✅ **€2.99/month** (vs $16+/month for email API services)
@@ -57,16 +60,19 @@ npm start
 #### Step 2: Deploy with One Command (2 minutes)
 
 SSH into your server:
+
 ```bash
 ssh root@YOUR_SERVER_IP
 ```
 
 Run the automated deployment:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Gtarafdar/email-validator/main/deploy-hetzner.sh | bash
 ```
 
 **The script automatically:**
+
 - ✅ Installs Node.js 20.x
 - ✅ Configures firewall + security
 - ✅ Clones repository
@@ -79,6 +85,7 @@ curl -fsSL https://raw.githubusercontent.com/Gtarafdar/email-validator/main/depl
 #### Step 3: Test It Works (1 minute)
 
 Open browser:
+
 ```
 http://YOUR_SERVER_IP
 ```
@@ -88,6 +95,7 @@ http://YOUR_SERVER_IP
 3. Test: `riyad@bonfiremedia.co.za`
 
 **Expected:**
+
 - ✅ Status: **Invalid** ❌ (not "likely_deliverable")
 - ✅ SMTP: **Mailbox not found** (not "inconclusive")
 - ✅ Score: ~55 (not 85)
@@ -128,11 +136,11 @@ Done! Access: `https://validator.yourdomain.com` 🔒
 
 ### Cost: €2.99/month
 
-| Service | Monthly Cost |
-|---------|-------------|
+| Service      | Monthly Cost   |
+| ------------ | -------------- |
 | Hetzner CX23 | €2.99 (~$3.25) |
-| ZeroBounce | $16-$80 ❌ |
-| Clearout | $15+ ❌ |
+| ZeroBounce   | $16-$80 ❌     |
+| Clearout     | $15+ ❌        |
 
 **You save 80-95%!** 💰
 

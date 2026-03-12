@@ -2497,13 +2497,13 @@ const UI = {
       quick:
         "⚡ Quick validation (syntax, disposable, typos only - no DNS checks)",
       standard: "🔍 Standard validation (syntax + DNS + email authentication)",
-      deep: "🔬 Deep validation (all checks including Gravatar verification)",
+      deep: "🔬 Deep validation (+ SMTP mailbox verification + Gravatar + domain age)",
     };
 
     // You can add a hint element to show the current level description
     const hintElement = document.getElementById("validationLevelHint");
     if (hintElement) {
-      hintElement.textContent = hints[level] || hints.standard;
+      hintElement.textContent = hints[level] || hints.deep;
     }
   },
 
@@ -2612,9 +2612,9 @@ const UI = {
       return;
     }
 
-    // Get selected validation level
+    // Get selected validation level - default to deep for SMTP checks
     const validationLevel =
-      document.getElementById("validationLevel")?.value || "standard";
+      document.getElementById("validationLevel")?.value || "deep";
 
     this.showLoading("Validating...");
 
@@ -2646,6 +2646,10 @@ const UI = {
       this.showNotification("Please enter email addresses", "error");
       return;
     }
+
+    // Get bulk validation level - default to deep for SMTP checks
+    const validationLevel =
+      document.getElementById("bulkValidationLevel")?.value || "deep";
 
     // Enforce 100 email limit for server protection
     if (emails.length > 100) {
@@ -2703,20 +2707,49 @@ const UI = {
         const email = emails[i];
         const bounceText = bounceMap[email.toLowerCase()] || "";
 
-        // Get selected validation level
+        // Get selected validation level - default to deep for SMTP checks
         const validationLevel =
           document.getElementById("bulkValidationLevel")?.value ||
           document.getElementById("validationLevel")?.value ||
-          "standard";
+          "deep";
 
-        // Validate email
-        const result = await Validator.validate(
-          email,
-          bounceText,
-          emails.slice(0, i),
-          validationLevel,
-        );
-        results.push(result);
+        // Validate email with error handling
+        try {
+          const result = await Validator.validate(
+            email,
+            bounceText,
+            emails.slice(0, i),
+            validationLevel,
+          );
+          results.push(result);
+        } catch (error) {
+          // Handle validation errors gracefully
+          console.error(`Validation failed for ${email}:`, error);
+          
+          // Create error result
+          const errorResult = {
+            email: email,
+            syntaxValid: true,
+            domain: "",
+            status: "validation_error",
+            score: 0,
+            recommendation: "review",
+            confidence: 0,
+            confidenceLevel: "none",
+            allWarnings: [`⚠️ Validation error: ${error.message}`],
+            checkedAt: new Date().toISOString(),
+          };
+          results.push(errorResult);
+          
+          // Show API error notification if authentication fails
+          if (error.message.includes("Authentication") || error.message.includes("API")) {
+            this.showNotification(
+              `⚠️ API authentication error. Please check API key in Settings.`,
+              "warning",
+              4000
+            );
+          }
+        }
 
         // Update progress
         const percentage = Math.round(((i + 1) / total) * 100);

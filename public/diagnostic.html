@@ -194,14 +194,21 @@
 
     <script>
       // Get API_KEY from localStorage or prompt user
-      let API_KEY = localStorage.getItem("validatorApiKey") || "dev-key-change-in-production";
-      
+      let API_KEY =
+        localStorage.getItem("validatorApiKey") ||
+        "dev-key-change-in-production";
+
       // If using default key on production, prompt user for actual key
-      if (API_KEY === "dev-key-change-in-production" && window.location.hostname !== "localhost") {
-        const userKey = prompt("Enter your API key (found in main app settings):");
+      if (
+        API_KEY === "dev-key-change-in-production" &&
+        window.location.hostname !== "localhost"
+      ) {
+        const userKey = prompt(
+          "Enter your API key (found in main app settings):",
+        );
         if (userKey) API_KEY = userKey;
       }
-      
+
       const RENDER_URL = window.location.origin;
       let currentIP = null;
 

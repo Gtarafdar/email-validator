@@ -8,14 +8,14 @@
 ✅ **SMTP Works Perfectly** - No proxy needed  
 ✅ **Extremely Affordable** - €2.99/month (~$3.25)  
 ✅ **Excellent Performance** - CX23: 2 vCPU, 4GB RAM, 40GB SSD  
-✅ **High Uptime** - 99.9% SLA  
+✅ **High Uptime** - 99.9% SLA
 
 ## Cost Breakdown
 
-| Plan | vCPU | RAM | Storage | Traffic | Monthly Cost |
-|------|------|-----|---------|---------|--------------|
-| **CX23** | 2 | 4GB | 40GB SSD | 20TB | **€2.99** |
-| CX33 | 2 | 8GB | 80GB SSD | 20TB | €5.79 |
+| Plan     | vCPU | RAM | Storage  | Traffic | Monthly Cost |
+| -------- | ---- | --- | -------- | ------- | ------------ |
+| **CX23** | 2    | 4GB | 40GB SSD | 20TB    | **€2.99**    |
+| CX33     | 2    | 8GB | 80GB SSD | 20TB    | €5.79        |
 
 **Recommendation:** CX23 is perfect for your validator (uses ~100MB RAM max).
 
@@ -260,6 +260,7 @@ curl -X POST http://95.217.123.45:8787/api/smtp-verify \
 ## Step 8: Setup Nginx (Optional but Recommended)
 
 Nginx provides:
+
 - Domain name support (validator.yourdomain.com)
 - SSL/HTTPS (Let's Encrypt free certificates)
 - Better performance
@@ -312,7 +313,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
-        
+
         # Timeouts for long-running SMTP checks
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
@@ -349,6 +350,7 @@ ufw reload
 ```
 
 **Access your validator:**
+
 - Before: `http://95.217.123.45:8787`
 - Now: `http://95.217.123.45` ✅
 
@@ -378,16 +380,19 @@ nano /etc/nginx/sites-available/email-validator
 ```
 
 Change:
+
 ```nginx
 server_name 95.217.123.45;
 ```
 
 To:
+
 ```nginx
 server_name validator.yourdomain.com;
 ```
 
 Reload Nginx:
+
 ```bash
 nginx -t && systemctl reload nginx
 ```
@@ -420,6 +425,7 @@ certbot renew --dry-run
 ```
 
 **Now access with HTTPS:**
+
 - `https://validator.yourdomain.com` 🔒
 
 ---
@@ -632,6 +638,7 @@ nginx -t
 ### Current Setup: €2.99/month
 
 **Additional costs (all optional):**
+
 - Domain name: ~€10/year (~€0.83/month)
 - **Total: ~€3.82/month** 🎯
 
@@ -653,6 +660,7 @@ nginx -t
 ✅ **Your validator is now production-ready!**
 
 **What you get:**
+
 - ✅ Clean IP for SMTP verification
 - ✅ ZeroBounce-level accuracy (~95%)
 - ✅ 24/7 uptime
@@ -662,6 +670,7 @@ nginx -t
 - ✅ **Only €2.99/month** 🎉
 
 **Optional enhancements:**
+
 1. Add more Hetzner locations (US, Finland) for redundancy
 2. Setup monitoring (UptimeRobot free plan)
 3. Add CDN (Cloudflare free plan) for global speed
@@ -687,7 +696,7 @@ nginx -t
 🎉 **Congratulations!** You now have a production-grade email validator running on Hetzner for only **€2.99/month** with:
 
 - ✅ Clean IPs that work for SMTP
-- ✅ ZeroBounce-level accuracy  
+- ✅ ZeroBounce-level accuracy
 - ✅ No blacklist issues
 - ✅ 24/7 uptime
 - ✅ Full control

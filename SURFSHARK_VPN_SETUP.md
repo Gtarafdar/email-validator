@@ -22,6 +22,7 @@
 
 3. **Get Your Credentials:**
    You'll see something like:
+
    ```
    Host: proxy-nl.surfshark.com (or other location)
    Port: 1080
@@ -56,13 +57,15 @@ SOCKS5_PASS=your-surfshark-password
 ```
 
 Then install dotenv:
+
 ```bash
 npm install dotenv --save
 ```
 
 Add to the **TOP** of `server.js` (line 1):
+
 ```javascript
-require('dotenv').config();
+require("dotenv").config();
 ```
 
 ---
@@ -104,11 +107,13 @@ require('dotenv').config();
 ### Test Locally:
 
 1. **Start your local server:**
+
    ```bash
    npm start
    ```
 
 2. **You should see:**
+
    ```
    ✓ SOCKS5 proxy enabled: proxy-nl.surfshark.com:1080
      This routes SMTP through VPN for clean IPs!
@@ -116,7 +121,7 @@ require('dotenv').config();
 
 3. **Run diagnostic:**
    - Open: http://localhost:8787/diagnostic.html
-   - Click **"Check Server IP"** 
+   - Click **"Check Server IP"**
    - You'll see Surfshark's IP (not your home IP!)
 
 4. **Test SMTP verification:**
@@ -131,6 +136,7 @@ require('dotenv').config();
 After adding environment variables to Render/Railway:
 
 1. **Commit and push** (triggers deployment):
+
    ```bash
    git add server.js package.json SURFSHARK_VPN_SETUP.md
    git commit -m "Add Surfshark VPN SOCKS5 proxy support for clean SMTP IPs"
@@ -153,7 +159,7 @@ After adding environment variables to Render/Railway:
 ✅ **Fast** - SOCKS5 is faster than HTTP proxies  
 ✅ **Reliable** - Surfshark has 100+ countries  
 ✅ **Private** - No third-party proxy services  
-✅ **Professional** - Same approach as ZeroBounce  
+✅ **Professional** - Same approach as ZeroBounce
 
 ---
 
@@ -192,11 +198,13 @@ After adding environment variables to Render/Railway:
 If you have other VPN subscriptions, these also work:
 
 ### **TunnelBear** (mentioned by user):
+
 - TunnelBear doesn't provide direct SOCKS5 proxy
 - Need to use OpenVPN config on server (more complex)
 - Surfshark is easier!
 
 ### **Other SOCKS5 Providers:**
+
 - **NordVPN** - SOCKS5 proxy available
 - **Private Internet Access (PIA)** - SOCKS5 support
 - **CyberGhost** - SOCKS5 support
@@ -207,6 +215,7 @@ If you have other VPN subscriptions, these also work:
 ## 📊 **Expected Results**
 
 ### Before (Free Hosting IPs - Blacklisted):
+
 ```
 riyad@bonfiremedia.co.za
 Status: "likely_deliverable" (85 score)
@@ -215,6 +224,7 @@ Reason: IP blacklisted by Google
 ```
 
 ### After (Surfshark VPN - Clean IPs):
+
 ```
 riyad@bonfiremedia.co.za
 Status: "invalid" (~55 score)
@@ -238,6 +248,7 @@ Reason: SMTP verification succeeded!
 ## 📞 **Need Help?**
 
 If you encounter issues:
+
 1. Check Surfshark status: https://support.surfshark.com/
 2. Verify credentials work in browser
 3. Test with `curl` command above
