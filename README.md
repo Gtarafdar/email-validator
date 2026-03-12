@@ -809,8 +809,118 @@ For true mailbox verification, SMTP probing is required (higher risk, rate limit
 
 ---
 
+## 🚀 Production Deployment with SMTP Verification
+
+### 95% Accuracy withReal SMTP Mailbox Verification
+
+This tool can be deployed with **SMTP mailbox verification** for 95% accuracy. However, this requires specific server configuration.
+
+### Critical Requirements for SMTP
+
+**⚠️ Port 25 MUST be open** for SMTP verification to work:
+
+✅ **Works**: Contabo VPS ($5-11/month) - Port 25 open by default
+❌ **Doesn't work**: Hetzner Cloud - Port 25 permanently blocked
+❌ **Doesn't work**: Render/Railway/Heroku - Port 25 blocked
+❌ **Doesn't work**: Vercel/Netlify - Port 25 blocked
+
+### Why Hetzner Doesn't Work
+
+We tested Hetzner Cloud and their support confirmed:
+> "We don't allow email sending services. Port 25 is permanently blocked."
+
+This is a strict anti-spam policy and cannot be changed.
+
+### Recommended: Contabo VPS
+
+**What we use in production:**
+- Provider: Contabo VPS S
+- Cost: $5.50/month
+- Location: Germany (or USA/Singapore/UK)
+- Specs: 4 vCPU, 6GB RAM, 100GB SSD
+- Port 25: ✅ Open by default
+- VNC Access: ✅ Included (rescue mode)
+
+**Sign up:** [contabo.com/en/vps](https://contabo.com/en/vps/)
+
+### Complete Deployment Guide
+
+For step-by-step instructions including:
+- Server creation and setup
+- VNC/TigerVNC configuration for rescue mode
+- SSH access and password alternatives
+- PM2 process management
+- Firewall configuration
+- SMTP port testing
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)**
+
+### VNC Access (TigerVNC)
+
+For server rescue mode and password recovery:
+
+**Install TigerVNC:**
+- macOS: `brew install --cask tigervnc-viewer`
+- Linux: `sudo apt install tigervnc-viewer`
+- Windows: Download from [TigerVNC Releases](https://github.com/TigerVNC/tigervnc/releases)
+
+**Connect:**
+```bash
+vncviewer YOUR_SERVER_IP:5900
+```
+
+Full VNC guide in [DEPLOYMENT.md](DEPLOYMENT.md).
+
+### Privacy & Data Handling
+
+**Zero Data Retention Policy:**
+
+- ❌ No emails stored
+- ❌ No validation results saved
+- ❌ No user tracking
+- ❌ No logs kept
+- ❌ No third-party services
+- ✅ All processing in memory only
+- ✅ Data immediately deleted after response
+- ✅ Contabo doesn't monitor server traffic
+
+See complete policy: **[PRIVACY.md](PRIVACY.md)**
+
+### What Data Do We Save?
+
+**Short answer:** Nothing.
+
+**Details:**
+- Emails are validated in RAM and immediately discarded
+- No database, no logs, no file storage
+- SMTP connections leave no trace
+- Open source - you can verify the code
+- Self-hosted - you control everything
+
+## 💖 Support This Project
+
+If this tool is useful to you, consider supporting its development:
+
+- 🐦 **Follow on Twitter:** [@Gtarafdarr](https://x.com/Gtarafdarr)
+- 💰 **Donate:** [gtarafdar.com/donate](https://gtarafdar.com/donate/)  
+- ⭐ **Star on GitHub:** Help others discover this tool
+- 🤝 **Contribute:** Pull requests welcome
+- 📢 **Share:** Tell others about this tool
+
+Your support helps keep this project free and open-source!
+
+## 📞 Contact
+
+- **Author:** Gobinda Tarafdar
+- **Twitter:** [@Gtarafdarr](https://x.com/Gtarafdarr)
+- **Website:** [gtarafdar.com](https://gtarafdar.com)
+- **Donate:** [gtarafdar.com/donate](https://gtarafdar.com/donate/)
+- **GitHub:** [github.com/Gtarafdar/email-validator](https://github.com/Gtarafdar/email-validator)
+
+---
+
 **Built with ❤️ for privacy, accuracy, and deliverability**
 
-📧 **Server running at: http://localhost:8787** 🚀
+📧 **Live Demo:** http://84.46.251.124:8787 🚀
 
-_Last updated: 2026-03-11 - Now with 23+ advanced features!_
+_Last updated: 2026-03-12 - Production deployment with 95% SMTP verification!_
